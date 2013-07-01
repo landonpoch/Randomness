@@ -1,28 +1,33 @@
-var http = require('http');
-var net = require('net');
-//var fs = require('fs');
+var http = require('http'),
+    net = require('net');
 
 var response;
 var connection;
-var file;
 
 var tcpServer = net.createServer(function(socket) {
   console.log('client connected');
   connection = socket;
-  
-  socket.on('data', function(data) {
-    //file.write(data);
-    response.write(data, 'base64');
+  socket.on('readable', function() {
+    var buffer = socket.read();
+    if (buffer) response.write(buffer, 'base64');
   });
-}).listen(8888, function() { console.log('listenting'); });
+  socket.on('end', function() {
+    response.end('');
+    console.log('finished sending song to browser');
+  });
+}).listen(8888, function() { 
+  console.log('TCP server listening');
+});
 
 var httpServer = http.createServer(function(req, res) {
   res.writeHead(200, {
     'Content-Type': 'audio/mpeg',
+    'Content-Length': '3612971',
     'Transfer-Encoding': 'chunked'
   });
   response = res;
-  //file = fs.createWriteStream('c:/test2.mp3');
   console.log('requesting song');
-  connection.write('get my song!');
-}).listen(8080, 'localhost');
+  if (connection) connection.write('get my song!');
+}).listen(8080, function() {
+  console.log('HTTP server listening');
+});
