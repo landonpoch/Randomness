@@ -40,6 +40,7 @@ main = do
     let encodedPrims = encode prims
     prettyPrint encodedPrims
     print (eitherDecode encodedPrims :: Either String [Prim])
+    print (eitherDecode "[4.1]" :: Either String [Prim])
     putStrLn "end!"
 
 prettyPrint :: I.ByteString -> IO()
@@ -47,13 +48,17 @@ prettyPrint = T.putStrLn . T.decodeUtf8
 
 data Prim = PrimInt Int | PrimString String deriving Show
 
-toInt :: Scientific -> Int
-toInt x = (\(Right y) -> y) (floatingOrInteger x)
+toInt :: Scientific -> Maybe Int
+toInt = forceInt . floatingOrInteger
+    where forceInt (Left _) = Nothing
+          forceInt (Right x) = Just x
 
 instance FromJSON Prim where
     parseJSON (String x) = return $ PrimString $ unpack x
-    parseJSON (Number x) = return $ PrimInt $ toInt x
-    parseJSON _ = fail "Unsuppored array item"
+    parseJSON (Number x) = tryInt $ toInt x
+        where tryInt (Nothing) = fail "Unsupported array item"
+              tryInt (Just y)  = return $ PrimInt y
+    parseJSON _          = fail "Unsuppored array item"
 
 instance ToJSON Prim where
     toJSON (PrimInt x)    = toJSON x
