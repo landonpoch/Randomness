@@ -13,6 +13,7 @@ import Data.Aeson.Types
 import GHC.Exts
 import Lib
 import Data.Scientific as Scientific
+import qualified Data.HashMap.Lazy as HML        ( member )
 
 main :: IO ()
 main = do
@@ -41,12 +42,25 @@ main = do
     prettyPrint encodedPrims
     print (eitherDecode encodedPrims :: Either String [Prim])
     print (eitherDecode "[4.1]" :: Either String [Prim])
+    let things = [ Thing { description = "Crap", quantity = 1 }]
+    let encodedThings = encode things
+    prettyPrint encodedThings
+    print (eitherDecode encodedThings :: Either String [Thing])
+    print (eitherDecode encodedThings :: Either String [Container])
+    print (eitherDecode encodedPeople :: Either String [Container])
+    let heteros = [ ThingContainer Thing { description = "Crap", quantity = 1 }
+                  , PersonContainer Person { name = "Landon", age = 40 }
+                  ]
+    let encodedHeteros = encode heteros
+    prettyPrint encodedHeteros
+    print (eitherDecode encodedHeteros :: Either String [Container])
     putStrLn "end!"
 
 prettyPrint :: I.ByteString -> IO()
 prettyPrint = T.putStrLn . T.decodeUtf8
 
 data Prim = PrimInt Int | PrimString String deriving Show
+data Container = PersonContainer Person | ThingContainer Thing deriving Show
 
 toInt :: Scientific -> Maybe Int
 toInt = forceInt . floatingOrInteger
@@ -90,3 +104,33 @@ instance ToJSON Person where
     toJSON Person{..} = object [
         "name" .= name, 
         "age" .= age]
+
+data Thing = Thing
+    { description :: !String
+    , quantity    :: !Int
+    } deriving Show
+
+instance FromJSON Thing where
+    parseJSON = withObject "thing" $ \o -> do
+        description <- o .: "description"
+        quantity <- o .: "quantity"
+        return Thing{..}
+
+instance ToJSON Thing where
+    toJSON Thing{..} = object [
+        "description" .= description
+        , "quantity" .= quantity ]
+
+instance FromJSON Container where
+    parseJSON (Data.Aeson.Object o) = do
+        if HML.member "name" o
+            then do
+                parsedPerson <- (parseJSON :: Value -> Parser Person) (Object o)
+                return $ PersonContainer parsedPerson
+            else do
+                parsedThing <- (parseJSON :: Value -> Parser Thing) (Object o)
+                return $ ThingContainer parsedThing
+
+instance ToJSON Container where
+    toJSON (ThingContainer x)  = toJSON x
+    toJSON (PersonContainer x) = toJSON x

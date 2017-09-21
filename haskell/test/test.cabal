@@ -35,6 +35,7 @@ executable test-exe
                      , text
                      , bytestring
                      , scientific
+                     , unordered-containers
   default-language:    Haskell2010
 
 test-suite test-test
