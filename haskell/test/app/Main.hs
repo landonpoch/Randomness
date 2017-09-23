@@ -7,7 +7,6 @@ import qualified Data.Text.Lazy.IO as T
 import qualified Data.Text.Lazy.Encoding as T
 import qualified Data.ByteString.Lazy.Internal as I
 import Data.Text as Text
-import Control.Monad
 import Data.Aeson
 import Data.Aeson.Types
 import GHC.Exts
@@ -64,15 +63,15 @@ data Container = PersonContainer Person | ThingContainer Thing deriving Show
 
 toInt :: Scientific -> Maybe Int
 toInt = forceInt . floatingOrInteger
-    where forceInt (Left _) = Nothing
+    where forceInt (Left _)  = Nothing
           forceInt (Right x) = Just x
 
 instance FromJSON Prim where
-    parseJSON (String x) = return $ PrimString $ unpack x
-    parseJSON (Number x) = tryInt $ toInt x
+    parseJSON (String x) = return . PrimString . unpack $ x
+    parseJSON (Number x) = tryInt . toInt $ x
         where tryInt (Nothing) = fail "Unsupported array item"
-              tryInt (Just y)  = return $ PrimInt y
-    parseJSON _          = fail "Unsuppored array item"
+              tryInt (Just y)  = return . PrimInt $ y
+    parseJSON _ = fail "Unsuppored array item"
 
 instance ToJSON Prim where
     toJSON (PrimInt x)    = toJSON x
@@ -85,7 +84,7 @@ data TestObj = TestObj
 
 instance FromJSON TestObj where
     parseJSON = withObject "testObj" $ \o -> do
-        test <- o .: "test"
+        test    <- o .: "test"
         numbers <- o .: "numbers"
         return TestObj{..}
 
@@ -97,13 +96,13 @@ data Person = Person
 instance FromJSON Person where
     parseJSON = withObject "person" $ \o -> do
         name <- o .: "name"
-        age <- o .: "age"
+        age  <- o .: "age"
         return Person{..}
 
 instance ToJSON Person where
     toJSON Person{..} = object [
         "name" .= name, 
-        "age" .= age]
+        "age"  .= age]
 
 data Thing = Thing
     { description :: !String
@@ -113,23 +112,18 @@ data Thing = Thing
 instance FromJSON Thing where
     parseJSON = withObject "thing" $ \o -> do
         description <- o .: "description"
-        quantity <- o .: "quantity"
+        quantity    <- o .: "quantity"
         return Thing{..}
 
 instance ToJSON Thing where
     toJSON Thing{..} = object [
         "description" .= description
-        , "quantity" .= quantity ]
+        , "quantity"  .= quantity ]
 
 instance FromJSON Container where
-    parseJSON (Data.Aeson.Object o) = do
-        if HML.member "name" o
-            then do
-                parsedPerson <- (parseJSON :: Value -> Parser Person) (Object o)
-                return $ PersonContainer parsedPerson
-            else do
-                parsedThing <- (parseJSON :: Value -> Parser Thing) (Object o)
-                return $ ThingContainer parsedThing
+    parseJSON (Object o) = if HML.member "name" o
+        then fmap PersonContainer $ (parseJSON :: Value -> Parser Person) . Object $ o
+        else fmap ThingContainer $ (parseJSON :: Value -> Parser Thing) . Object $ o
 
 instance ToJSON Container where
     toJSON (ThingContainer x)  = toJSON x
