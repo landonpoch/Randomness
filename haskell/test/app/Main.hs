@@ -16,6 +16,30 @@ import qualified Data.HashMap.Lazy as HML        ( member )
 
 main :: IO ()
 main = do
+    print $ stringToInteger "1035"
+
+stringToInteger :: String -> Int
+stringToInteger s = sum $ Prelude.zipWith (*)
+                    (powersOfTen 0) -- Initial number should be less than zero if floating point required
+                    (Prelude.map charToInt $ Prelude.reverse s)
+
+powersOfTen :: Int -> [Int]
+powersOfTen initialNumber = Prelude.map (\x -> 10 ^ x) [initialNumber..]
+
+charToInt :: Char -> Int
+charToInt '0' = 0
+charToInt '1' = 1
+charToInt '2' = 2
+charToInt '3' = 3
+charToInt '4' = 4
+charToInt '5' = 5
+charToInt '6' = 6
+charToInt '7' = 7
+charToInt '8' = 8
+charToInt '9' = 9
+    
+json :: IO()
+json = do
     let encoded = encode ([1,2,3] :: [Int])
     prettyPrint encoded
     print (decode encoded :: Maybe [Int])
