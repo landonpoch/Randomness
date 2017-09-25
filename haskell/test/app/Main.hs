@@ -25,11 +25,7 @@ asciiToDecimal s =
         reversed   = foldl (\acc x-> x:acc) [] s
     in (if L.head s == '-' then negate else id) . sum $ zipWith (*)
         (map fromIntegral . M.catMaybes . map (`L.elemIndex` characters) $ filter (`elem` characters) reversed)
-        (map (10.0^^) [negate $ unwrapMaybe (L.elemIndex '.' reversed) 0..])
-
-unwrapMaybe :: Maybe a -> a -> a
-unwrapMaybe (Just x) _ = x
-unwrapMaybe Nothing x  = x
+        (map (10.0^^) [negate $ M.fromMaybe 0 (L.elemIndex '.' reversed)..])
     
 json :: IO()
 json = do
