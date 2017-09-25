@@ -22,10 +22,10 @@ main = print $ (asciiToDecimal "-$104,689.357") * 2
 asciiToDecimal :: String -> Double
 asciiToDecimal s = 
     let characters = "0123456789"
-        reversed = foldl (\acc x-> x:acc) [] s
-    in (if L.head s == '-' then -1 else 1) * (sum $ zipWith (*)
+        reversed   = foldl (\acc x-> x:acc) [] s
+    in (if L.head s == '-' then negate else id) . sum $ zipWith (*)
         (map fromIntegral . M.catMaybes . map (`L.elemIndex` characters) $ filter (`elem` characters) reversed)
-        (map (10.0^^) [negate $ unwrapMaybe (L.elemIndex '.' reversed) 0..]))
+        (map (10.0^^) [negate $ unwrapMaybe (L.elemIndex '.' reversed) 0..])
 
 unwrapMaybe :: Maybe a -> a -> a
 unwrapMaybe (Just x) _ = x
