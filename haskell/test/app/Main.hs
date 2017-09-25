@@ -6,14 +6,14 @@ module Main where
 import qualified Data.Text.Lazy.IO as T
 import qualified Data.Text.Lazy.Encoding as T
 import qualified Data.ByteString.Lazy.Internal as I
-import Data.Text as Text hiding (map, filter, zipWith)
+import Data.Text as Text hiding (map, filter, zipWith, foldl)
 import Data.Aeson
 import Data.Aeson.Types
 import GHC.Exts
 import Lib
 import Data.Scientific as Scientific
 import qualified Data.HashMap.Lazy as HML        ( member )
-import qualified Data.List as L hiding (map, filter, zipWith)
+import qualified Data.List as L hiding (map, filter, zipWith, foldl)
 import qualified Data.Maybe as M
 
 main :: IO ()
@@ -22,7 +22,7 @@ main = print $ (asciiToDecimal "-$104,689.357") * 2
 asciiToDecimal :: String -> Double
 asciiToDecimal s = 
     let characters = "0123456789"
-        reversed = Prelude.foldl (\acc x-> x:acc) [] s
+        reversed = foldl (\acc x-> x:acc) [] s
     in (if L.head s == '-' then -1 else 1) * (sum $ zipWith (*)
         (map fromIntegral . M.catMaybes . map (`L.elemIndex` characters) $ filter (`elem` characters) reversed)
         (map (10.0^^) [negate $ unwrapMaybe (L.elemIndex '.' reversed) 0..]))
