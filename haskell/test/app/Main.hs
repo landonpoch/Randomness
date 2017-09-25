@@ -13,30 +13,24 @@ import GHC.Exts
 import Lib
 import Data.Scientific as Scientific
 import qualified Data.HashMap.Lazy as HML        ( member )
+import qualified Data.List as L
+import qualified Data.Maybe as M
 
 main :: IO ()
-main = do
-    print $ stringToInteger "1035"
+main = print $ (asciiToBinary "-$104,689.357") * 2
 
-stringToInteger :: String -> Int
-stringToInteger s = sum $ Prelude.zipWith (*)
-                    (powersOfTen 0) -- Initial number should be less than zero if floating point required
-                    (Prelude.map charToInt $ Prelude.reverse s)
+asciiToBinary :: String -> Double
+asciiToBinary s = let characters = "0123456789"
+                      reversed = Prelude.reverse s
+                  in (if L.head s == '-' then -1 else 1) * (sum $ Prelude.zipWith (*)
+                      (Prelude.map fromIntegral . M.catMaybes
+                          $ Prelude.map (`L.elemIndex` characters)
+                          $ Prelude.filter (`elem` characters) reversed)
+                      (Prelude.map (10.0^^) [((unwrapMaybe (L.elemIndex '.' reversed) 0) * (-1))..]))
 
-powersOfTen :: Int -> [Int]
-powersOfTen initialNumber = Prelude.map (\x -> 10 ^ x) [initialNumber..]
-
-charToInt :: Char -> Int
-charToInt '0' = 0
-charToInt '1' = 1
-charToInt '2' = 2
-charToInt '3' = 3
-charToInt '4' = 4
-charToInt '5' = 5
-charToInt '6' = 6
-charToInt '7' = 7
-charToInt '8' = 8
-charToInt '9' = 9
+unwrapMaybe :: Maybe a -> a -> a
+unwrapMaybe (Just x) _ = x
+unwrapMaybe Nothing x  = x
     
 json :: IO()
 json = do
