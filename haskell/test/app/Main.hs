@@ -21,7 +21,7 @@ main = print $ (asciiToBinary "-$104,689.357") * 2
 
 asciiToBinary :: String -> Double
 asciiToBinary s = let characters = "0123456789"
-                      reversed = Prelude.reverse s
+                      reversed = myReverse s
                   in (if L.head s == '-' then -1 else 1) * (sum $ Prelude.zipWith (*)
                       (Prelude.map fromIntegral . M.catMaybes
                           $ Prelude.map (`L.elemIndex` characters)
@@ -31,6 +31,9 @@ asciiToBinary s = let characters = "0123456789"
 unwrapMaybe :: Maybe a -> a -> a
 unwrapMaybe (Just x) _ = x
 unwrapMaybe Nothing x  = x
+
+myReverse :: [a] -> [a]
+myReverse = Prelude.foldl (\acc x-> x:acc) []
     
 json :: IO()
 json = do
