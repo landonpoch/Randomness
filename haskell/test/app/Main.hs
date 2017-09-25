@@ -17,16 +17,16 @@ import qualified Data.List as L
 import qualified Data.Maybe as M
 
 main :: IO ()
-main = print $ (asciiToBinary "-$104,689.357") * 2
+main = print $ (asciiToDecimal "-$104,689.357") * 2
 
-asciiToBinary :: String -> Double
-asciiToBinary s = let characters = "0123456789"
-                      reversed = myReverse s
-                  in (if L.head s == '-' then -1 else 1) * (sum $ Prelude.zipWith (*)
-                      (Prelude.map fromIntegral . M.catMaybes
-                          $ Prelude.map (`L.elemIndex` characters)
-                          $ Prelude.filter (`elem` characters) reversed)
-                      (Prelude.map (10.0^^) [((unwrapMaybe (L.elemIndex '.' reversed) 0) * (-1))..]))
+asciiToDecimal :: String -> Double
+asciiToDecimal s = let characters = "0123456789"
+                       reversed = myReverse s
+                   in (if L.head s == '-' then -1 else 1) * (sum $ Prelude.zipWith (*)
+                       (Prelude.map fromIntegral . M.catMaybes
+                           $ Prelude.map (`L.elemIndex` characters)
+                           $ Prelude.filter (`elem` characters) reversed)
+                       (Prelude.map (10.0^^) [((unwrapMaybe (L.elemIndex '.' reversed) 0) * (-1))..]))
 
 unwrapMaybe :: Maybe a -> a -> a
 unwrapMaybe (Just x) _ = x
