@@ -21,7 +21,7 @@ main = print $ (asciiToDecimal "-$104,689.357") * 2
 
 asciiToDecimal :: String -> Double
 asciiToDecimal s = let characters = "0123456789"
-                       reversed = myReverse s
+                       reversed = Prelude.foldl (\acc x-> x:acc) [] s
                    in (if L.head s == '-' then -1 else 1) * (sum $ Prelude.zipWith (*)
                        (Prelude.map fromIntegral . M.catMaybes . Prelude.map (`L.elemIndex` characters)
                            $ Prelude.filter (`elem` characters) reversed)
@@ -30,9 +30,6 @@ asciiToDecimal s = let characters = "0123456789"
 unwrapMaybe :: Maybe a -> a -> a
 unwrapMaybe (Just x) _ = x
 unwrapMaybe Nothing x  = x
-
-myReverse :: [a] -> [a]
-myReverse = Prelude.foldl (\acc x-> x:acc) []
     
 json :: IO()
 json = do
