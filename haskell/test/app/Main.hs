@@ -23,8 +23,7 @@ asciiToDecimal :: String -> Double
 asciiToDecimal s = let characters = "0123456789"
                        reversed = myReverse s
                    in (if L.head s == '-' then -1 else 1) * (sum $ Prelude.zipWith (*)
-                       (Prelude.map fromIntegral . M.catMaybes
-                           $ Prelude.map (`L.elemIndex` characters)
+                       (Prelude.map fromIntegral . M.catMaybes . Prelude.map (`L.elemIndex` characters)
                            $ Prelude.filter (`elem` characters) reversed)
                        (Prelude.map (10.0^^) [((unwrapMaybe (L.elemIndex '.' reversed) 0) * (-1))..]))
 
