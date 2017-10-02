@@ -10,9 +10,12 @@ import           Control.Monad
 import           Network.HTTP.Simple
 
 bootstrap :: String -> IO ()
-bootstrap val = do
-    response <- httpJSON <=< parseRequest $ val
-    S8.putStrLn $ Yaml.encode (getResponseBody response :: Value)
+bootstrap = S8.putStrLn <=< fmap encodeResponse . httpJSON <=< parseRequest
+    -- response <- httpJSON <=< parseRequest $ val
+    -- S8.putStrLn $ Yaml.encode (getResponseBody response :: Value)
+
+encodeResponse :: Response Value -> S8.ByteString
+encodeResponse = Yaml.encode . getResponseBody
 
 -- someFunc :: IO ()
 -- someFunc = do
