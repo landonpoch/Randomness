@@ -23,6 +23,7 @@ library
                      , bytestring
                      , aeson
                      , yaml
+                     , unordered-containers
   default-language:    Haskell2010
 
 executable test-exe
