@@ -17,7 +17,9 @@ import qualified Data.List as L hiding (map, filter, zipWith, foldl, head)
 import qualified Data.Maybe as M
 
 main :: IO ()
-main = Lib.test "https://webapp.movetv.com/npv/cfdir.json"
+main = do
+    response <- Lib.test "https://webapp.movetv.com/npv/cfdir.json"
+    print response
 --main = print $ (asciiToDecimal "-$104,689.357") * 2
 
 asciiToDecimal :: String -> Double
