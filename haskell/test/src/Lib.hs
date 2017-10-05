@@ -19,7 +19,9 @@ import           Data.HashMap.Strict
 -- encodeResponse :: Response Value -> S8.ByteString
 -- encodeResponse = Yaml.encode . getResponseBody
 
-bootstrap :: String -> IO (Environments)
+type Url = String
+
+bootstrap :: Url -> IO (Environments)
 bootstrap = fmap getResponseBody . httpJSON <=< parseRequest
 
 data Environment = Environment
