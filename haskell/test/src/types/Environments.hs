@@ -1,6 +1,9 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE OverloadedStrings #-}
-module Types.Environments ( Environments ) where
+module Types.Environments
+    ( Environments(..)
+    , Environment(..)
+    ) where
 
 import Data.HashMap.Strict
 import Data.Aeson

@@ -13,13 +13,21 @@ import GHC.Exts
 import Lib
 import Data.Scientific as Scientific
 import qualified Data.HashMap.Lazy as HML        ( member )
+import qualified Data.HashMap.Strict as HMS      ( keys, lookup )
 import qualified Data.List as L hiding (map, filter, zipWith, foldl, head)
 import qualified Data.Maybe as M
+import qualified Types.Environments as T
 
 main :: IO ()
 main = do
     response <- Lib.bootstrap "https://webapp.movetv.com/npv/cfdir.json"
-    print response
+    let environments = T.environments response
+    print $ HMS.keys environments
+    let environment = HMS.lookup "beta" environments
+    print environment
+    let nextUrl = environment >>= T.configHostSsl
+    print nextUrl
+    M.maybe (return ()) Lib.testUrl nextUrl
 --main = print $ (asciiToDecimal "-$104,689.357") * 2
 
 asciiToDecimal :: String -> Double
