@@ -18,7 +18,7 @@ import qualified Data.Maybe as M
 
 main :: IO ()
 main = do
-    response <- Lib.test "https://webapp.movetv.com/npv/cfdir.json"
+    response <- Lib.bootstrap "https://webapp.movetv.com/npv/cfdir.json"
     print response
 --main = print $ (asciiToDecimal "-$104,689.357") * 2
 

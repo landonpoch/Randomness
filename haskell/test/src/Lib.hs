@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 module Lib
-    ( test
+    ( bootstrap
     ) where
 
 import           Data.Aeson            
@@ -13,18 +13,14 @@ import           Network.HTTP.Simple
 import           Data.HashMap.Strict
 -- import           Text.Read             (readMaybe)
 
-bootstrap :: String -> IO ()
-bootstrap = S8.putStrLn <=< fmap encodeResponse . httpJSON <=< parseRequest
+-- bootstrap :: String -> IO ()
+-- bootstrap = S8.putStrLn <=< fmap encodeResponse . httpJSON <=< parseRequest
 
-encodeResponse :: Response Value -> S8.ByteString
-encodeResponse = Yaml.encode . getResponseBody
+-- encodeResponse :: Response Value -> S8.ByteString
+-- encodeResponse = Yaml.encode . getResponseBody
 
-test :: String -> IO (Environments)
-test url = do
-    request <- (parseRequest url)
-    response <- (httpJSON :: Request -> IO (Response Environments)) request
-    let responseBody = getResponseBody response
-    return responseBody
+bootstrap :: String -> IO (Environments)
+bootstrap = fmap getResponseBody . httpJSON <=< parseRequest
 
 data Environment = Environment
     { configHost    :: !String
