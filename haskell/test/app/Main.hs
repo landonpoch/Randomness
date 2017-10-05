@@ -20,6 +20,7 @@ import qualified Types.Environments as T
 
 main :: IO ()
 main = do
+    Lib.testUrl "https://webapp.movetv.com/npv/cfdir.json"
     response <- Lib.bootstrap "https://webapp.movetv.com/npv/cfdir.json"
     let environments = T.environments response
     print $ HMS.keys environments
@@ -27,7 +28,7 @@ main = do
     print environment
     let nextUrl = environment >>= T.configHostSsl
     print nextUrl
-    M.maybe (return ()) Lib.testUrl nextUrl
+    -- M.maybe (return ()) Lib.testUrl nextUrl
 --main = print $ (asciiToDecimal "-$104,689.357") * 2
 
 asciiToDecimal :: String -> Double
