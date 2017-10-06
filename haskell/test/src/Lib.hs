@@ -5,11 +5,11 @@ module Lib
 
 import           Control.Monad
 import           Network.HTTP.Simple
-import qualified Types.Environments as T
+import           Data.Aeson
 import qualified Data.ByteString.Lazy.Char8 as L8
 
 type Url = String
-bootstrap :: Url -> IO (T.Environments)
+bootstrap :: (FromJSON a) => Url -> IO (a)
 bootstrap = fmap getResponseBody . httpJSON <=< parseRequest
 
 testUrl :: Url -> IO ()

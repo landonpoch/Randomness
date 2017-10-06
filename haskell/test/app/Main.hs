@@ -5,6 +5,7 @@ module Main where
 
 import qualified Data.Text.Lazy.IO as T
 import qualified Data.Text.Lazy.Encoding as T
+import qualified Data.Text.Template as Temp (substitute)
 import qualified Data.ByteString.Lazy.Internal as I
 import Data.Text as Text hiding (map, filter, zipWith, foldl, head)
 import Data.Aeson
@@ -28,8 +29,16 @@ main = do
     print environment
     let nextUrl = environment >>= T.configHostSsl
     print nextUrl
-    -- M.maybe (return ()) Lib.testUrl nextUrl
+    M.maybe (return ()) Lib.testUrl $ Just "https://b-webapp.movetv.com/config/env-list/browser-sling.json"
+    -- M.maybe (return ()) callNext nextUrl
 --main = print $ (asciiToDecimal "-$104,689.357") * 2
+
+-- callNext :: String -> IO ()
+-- callNext root = do
+--     let platform = "browser"
+--     let template = "$root/env-list/$platform-sling.json"
+--     let nextUrl = Temp.substitute template ((\x -> if x == "root" then pack root else platform) :: Text -> Text)
+--     Lib.testUrl $ Text.pack nextUrl
 
 asciiToDecimal :: String -> Double
 asciiToDecimal s = 

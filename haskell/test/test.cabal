@@ -38,6 +38,7 @@ executable test-exe
                      , bytestring
                      , scientific
                      , unordered-containers
+                     , template
   default-language:    Haskell2010
 
 test-suite test-test
