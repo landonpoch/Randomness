@@ -1,6 +1,6 @@
 module Lib
-    ( bootstrap
-    , testUrl
+    ( requestJSON
+    , printRequest
     ) where
 
 import           Control.Monad
@@ -9,8 +9,8 @@ import           Data.Aeson
 import qualified Data.ByteString.Lazy.Char8 as L8
 
 type Url = String
-bootstrap :: (FromJSON a) => Url -> IO (a)
-bootstrap = fmap getResponseBody . httpJSON <=< parseRequest
+requestJSON :: (FromJSON a) => Url -> IO (a)
+requestJSON = fmap getResponseBody . httpJSON <=< parseRequest
 
-testUrl :: Url -> IO ()
-testUrl = L8.putStrLn <=< fmap getResponseBody . httpLBS <=< parseRequest
+printRequest :: Url -> IO ()
+printRequest = L8.putStrLn <=< fmap getResponseBody . httpLBS <=< parseRequest

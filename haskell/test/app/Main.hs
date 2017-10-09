@@ -5,7 +5,6 @@ module Main where
 
 import qualified Data.Text.Lazy.IO as T
 import qualified Data.Text.Lazy.Encoding as T
-import qualified Data.Text.Template as Temp (substitute)
 import qualified Data.ByteString.Lazy.Internal as I
 import Data.Text as Text hiding (map, filter, zipWith, foldl, head)
 import Data.Aeson
@@ -14,31 +13,32 @@ import GHC.Exts
 import Lib
 import Data.Scientific as Scientific
 import qualified Data.HashMap.Lazy as HML        ( member )
-import qualified Data.HashMap.Strict as HMS      ( keys, lookup )
+import qualified Data.HashMap.Strict as HMS      ( lookup )
 import qualified Data.List as L hiding (map, filter, zipWith, foldl, head)
 import qualified Data.Maybe as M
 import qualified Types.Environments as T
+import Text.Printf (printf)
+
+data Config = Config
+    { rootUrl     :: !String
+    , environment :: !String
+    , platform    :: !String
+    }
 
 main :: IO ()
 main = do
-    Lib.testUrl "https://webapp.movetv.com/npv/cfdir.json"
-    response <- Lib.bootstrap "https://webapp.movetv.com/npv/cfdir.json"
-    let environments = T.environments response
-    print $ HMS.keys environments
-    let environment = HMS.lookup "beta" environments
-    print environment
-    let nextUrl = environment >>= T.configHostSsl
-    print nextUrl
-    M.maybe (return ()) Lib.testUrl $ Just "https://b-webapp.movetv.com/config/env-list/browser-sling.json"
-    -- M.maybe (return ()) callNext nextUrl
+    let config = Config { rootUrl = "https://webapp.movetv.com/npv/cfdir.json"
+                        , environment = "beta"
+                        , platform = "browser"
+                        }
+    response <- Lib.requestJSON $ rootUrl config
+    let environmentValue = HMS.lookup (environment config) $ T.environments response
+    let configHost = environmentValue >>= T.configHostSsl
+    M.maybe
+        (putStrLn "Unable to get environment list")
+        (\x -> Lib.printRequest $ printf "%s/env-list/%s-sling.json" x (platform config))
+        configHost
 --main = print $ (asciiToDecimal "-$104,689.357") * 2
-
--- callNext :: String -> IO ()
--- callNext root = do
---     let platform = "browser"
---     let template = "$root/env-list/$platform-sling.json"
---     let nextUrl = Temp.substitute template ((\x -> if x == "root" then pack root else platform) :: Text -> Text)
---     Lib.testUrl $ Text.pack nextUrl
 
 asciiToDecimal :: String -> Double
 asciiToDecimal s = 
