@@ -23,20 +23,20 @@ data Config = Config
     { rootUrl     :: !String
     , environment :: !String
     , platform    :: !String
-    }
+    } deriving Show
 
 main :: IO ()
 main = do
-    let config = Config { rootUrl = "https://webapp.movetv.com/npv/cfdir.json"
-                        , environment = "beta"
-                        , platform = "browser"
-                        }
-    response <- Lib.requestJSON $ rootUrl config
-    let environmentValue = HMS.lookup (environment config) $ T.environments response
+    let appConfig = Config { rootUrl     = "https://webapp.movetv.com/npv/cfdir.json"
+                           , environment = "beta"
+                           , platform    = "browser"
+                           }
+    response <- Lib.requestJSON $ rootUrl appConfig
+    let environmentValue = HMS.lookup (environment appConfig) $ T.environments response
     let maybeConfigHost = environmentValue >>= T.configHostSsl
     M.maybe
         (putStrLn "Unable to get environment list")
-        (\configHost -> Lib.printRequest $ printf "%s/env-list/%s-sling.json" configHost (platform config))
+        (\configHost -> Lib.printRequest . printf "%s/env-list/%s-sling.json" configHost $ platform appConfig)
         maybeConfigHost
 --main = print $ (asciiToDecimal "-$104,689.357") * 2
 

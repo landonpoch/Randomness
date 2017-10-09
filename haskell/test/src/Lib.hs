@@ -3,9 +3,9 @@ module Lib
     , printRequest
     ) where
 
-import           Control.Monad
-import           Network.HTTP.Simple
-import           Data.Aeson
+import           Control.Monad                 ( (<=<) )
+import           Network.HTTP.Simple           ( getResponseBody, httpJSON, httpLBS, parseRequest )
+import           Data.Aeson                    ( FromJSON )
 import qualified Data.ByteString.Lazy.Char8 as L8
 
 type Url = String

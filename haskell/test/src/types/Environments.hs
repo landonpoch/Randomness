@@ -5,8 +5,8 @@ module Types.Environments
     , Environment(..)
     ) where
 
-import Data.HashMap.Strict
-import Data.Aeson
+import Data.HashMap.Strict (HashMap)
+import Data.Aeson          (FromJSON, parseJSON, withObject, (.:), (.:?))
 
 data Environment = Environment
     { configHost    :: !String
