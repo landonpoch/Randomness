@@ -33,11 +33,11 @@ main = do
                         }
     response <- Lib.requestJSON $ rootUrl config
     let environmentValue = HMS.lookup (environment config) $ T.environments response
-    let configHost = environmentValue >>= T.configHostSsl
+    let maybeConfigHost = environmentValue >>= T.configHostSsl
     M.maybe
         (putStrLn "Unable to get environment list")
-        (\x -> Lib.printRequest $ printf "%s/env-list/%s-sling.json" x (platform config))
-        configHost
+        (\configHost -> Lib.printRequest $ printf "%s/env-list/%s-sling.json" configHost (platform config))
+        maybeConfigHost
 --main = print $ (asciiToDecimal "-$104,689.357") * 2
 
 asciiToDecimal :: String -> Double
