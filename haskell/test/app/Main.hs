@@ -17,6 +17,7 @@ import qualified Data.HashMap.Strict as HMS      ( lookup )
 import qualified Data.List as L hiding (map, filter, zipWith, foldl, head)
 import qualified Data.Maybe as M
 import qualified Types.Environments as T
+import qualified Types.Hostnames as TH
 import Text.Printf (printf)
 
 data Config = Config
@@ -36,9 +37,14 @@ main = do
     let maybeConfigHost = environmentValue >>= T.configHostSsl
     M.maybe
         (putStrLn "Unable to get environment list")
-        (\configHost -> Lib.printRequest . printf "%s/env-list/%s-sling.json" configHost $ platform appConfig)
+        (\configHost -> next configHost $ platform appConfig)
         maybeConfigHost
 --main = print $ (asciiToDecimal "-$104,689.357") * 2
+
+next :: String -> String -> IO ()
+next configHost platform = do
+    hostnames <- Lib.requestJSON . printf "%s/env-list/%s-sling.json" configHost $ platform
+    print (hostnames :: TH.HostnameEnvironments)
 
 asciiToDecimal :: String -> Double
 asciiToDecimal s = 

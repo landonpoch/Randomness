@@ -3,10 +3,16 @@ module Lib
     , printRequest
     ) where
 
-import           Control.Monad                 ( (<=<) )
-import           Network.HTTP.Simple           ( getResponseBody, httpJSON, httpLBS, parseRequest, Request, Response )
-import           Data.Aeson                    ( FromJSON )
-import qualified Data.ByteString.Lazy.Char8 as L8
+import           Control.Monad                    ( (<=<) )
+import           Network.HTTP.Simple              ( getResponseBody
+                                                  , httpJSON
+                                                  , httpLBS
+                                                  , parseRequest
+                                                  , Request
+                                                  , Response 
+                                                  )
+import           Data.Aeson                       ( FromJSON )
+import qualified Data.ByteString.Lazy.Char8 as L8 ( putStrLn )
 
 type Url = String
 requestJSON :: (FromJSON a) => Url -> IO (a)
