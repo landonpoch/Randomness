@@ -37,14 +37,21 @@ main = do
     let maybeConfigHost = environmentValue >>= T.configHostSsl
     M.maybe
         (putStrLn "Unable to get environment list")
-        (\configHost -> next configHost $ platform appConfig)
+        (\configHost -> next configHost (platform appConfig) $ environment appConfig)
         maybeConfigHost
 --main = print $ (asciiToDecimal "-$104,689.357") * 2
 
-next :: String -> String -> IO ()
-next configHost platform = do
+next :: String -> String -> String -> IO ()
+next configHost platform env = do
     hostnames <- Lib.requestJSON . printf "%s/env-list/%s-sling.json" configHost $ platform
-    print (hostnames :: TH.HostnameEnvironments)
+    let selectedHostnames = HMS.lookup env (TH.environments (hostnames :: TH.HostnameEnvironments))
+    M.maybe
+        (putStrLn "No ums endpoint found")
+        (\x -> authenticate (printf "PUT %s%s" (TH.umsUrl x) ("/v3/xauth/access_token.json" :: String)))
+        selectedHostnames
+
+authenticate :: String -> IO ()
+authenticate = Lib.printRequest
 
 asciiToDecimal :: String -> Double
 asciiToDecimal s = 

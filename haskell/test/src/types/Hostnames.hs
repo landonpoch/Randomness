@@ -2,7 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Types.Hostnames
     ( Hostnames(..)
-    , HostnameEnvironments
+    , HostnameEnvironments(..)
     ) where
 
 import Data.HashMap.Strict (HashMap)
