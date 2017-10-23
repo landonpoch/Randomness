@@ -11,15 +11,22 @@ import           Network.HTTP.Simple              ( getResponseBody
                                                   , Request
                                                   , Response 
                                                   )
-import           Data.Aeson                       ( FromJSON )
+import           Data.Aeson                       ( FromJSON, eitherDecode )
 import qualified Data.ByteString.Lazy.Char8 as L8 ( putStrLn )
 
 type Url = String
-requestJSON :: (FromJSON a) => Url -> IO (a)
-requestJSON = request httpJSON
+requestJSON :: (FromJSON a) => Url -> IO (Either String a)
+requestJSON url = do
+    putStrLn url
+    let response = request httpLBS $ url
+    resp <- response
+    L8.putStrLn resp
+    return $ eitherDecode resp
 
 printRequest :: Url -> IO ()
-printRequest = L8.putStrLn <=< request httpLBS
+printRequest url = do
+    putStrLn url
+    L8.putStrLn <=< request httpLBS $ url
 
 request :: (Request -> IO (Response a)) -> Url -> IO (a)
 request requestMechanism = fmap getResponseBody . requestMechanism <=< parseRequest

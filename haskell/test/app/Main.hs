@@ -3,21 +3,21 @@
 {-# LANGUAGE RecordWildCards #-}
 module Main where
 
-import qualified Data.Text.Lazy.IO as T
-import qualified Data.Text.Lazy.Encoding as T
-import qualified Data.ByteString.Lazy.Internal as I
-import Data.Text as Text hiding (map, filter, zipWith, foldl, head)
 import Data.Aeson
 import Data.Aeson.Types
 import GHC.Exts
 import Lib
 import Data.Scientific as Scientific
-import qualified Data.HashMap.Lazy as HML        ( member )
-import qualified Data.HashMap.Strict as HMS      ( lookup )
-import qualified Data.List as L hiding (map, filter, zipWith, foldl, head)
+import Data.Text as Text hiding             ( map, filter, zipWith, foldl, head )
+import qualified Data.HashMap.Lazy as HML   ( member )
+import qualified Data.HashMap.Strict as HMS ( lookup )
+import qualified Data.List as L hiding      ( map, filter, zipWith, foldl, head )
 import qualified Data.Maybe as M
 import qualified Types.Environments as T
 import qualified Types.Hostnames as TH
+import qualified Data.Text.Lazy.IO as T
+import qualified Data.Text.Lazy.Encoding as T
+import qualified Data.ByteString.Lazy.Internal as I
 import Text.Printf (printf)
 
 data Config = Config
@@ -28,30 +28,41 @@ data Config = Config
 
 main :: IO ()
 main = do
-    let appConfig = Config { rootUrl     = "https://webapp.movetv.com/npv/cfdir.json"
+    let appConfig = Config { rootUrl     = "GET https://webapp.movetv.com/npv/cfdir.json"
                            , environment = "beta"
                            , platform    = "browser"
                            }
-    response <- Lib.requestJSON $ rootUrl appConfig
-    let environmentValue = HMS.lookup (environment appConfig) $ T.environments response
+    response <- (Lib.requestJSON $ rootUrl appConfig) :: IO (Either String T.Environments)
+    either putStrLn (\x -> bleh appConfig x) $ response
+
+bleh :: Config -> T.Environments -> IO()
+bleh config environments = do
+    let environmentValue = HMS.lookup (environment config) $ T.environments environments
     let maybeConfigHost = environmentValue >>= T.configHostSsl
     M.maybe
         (putStrLn "Unable to get environment list")
-        (\configHost -> next configHost (platform appConfig) $ environment appConfig)
+        (\configHost -> next configHost (platform config) $ environment config)
         maybeConfigHost
 --main = print $ (asciiToDecimal "-$104,689.357") * 2
 
 next :: String -> String -> String -> IO ()
 next configHost platform env = do
-    hostnames <- Lib.requestJSON . printf "%s/env-list/%s-sling.json" configHost $ platform
+    let url = printf "GET %s/env-list/%s-sling.json" configHost $ platform
+    hostnames <- (Lib.requestJSON url) :: IO (Either String TH.HostnameEnvironments)
+    either putStrLn (\x -> bleh2 platform env x) $ hostnames
+
+bleh2 :: String -> String -> TH.HostnameEnvironments -> IO ()
+bleh2 platform env hostnames = do
     let selectedHostnames = HMS.lookup env (TH.environments (hostnames :: TH.HostnameEnvironments))
     M.maybe
         (putStrLn "No ums endpoint found")
-        (\x -> authenticate (printf "PUT %s%s" (TH.umsUrl x) ("/v3/xauth/access_token.json" :: String)))
+        (\x -> do
+            let peUrl = (printf "GET %s/%s/sling/pe-%s.xml.enc" (TH.appCastUrl x) platform env)
+            Lib.printRequest peUrl)
         selectedHostnames
 
-authenticate :: String -> IO ()
-authenticate = Lib.printRequest
+-- authenticate :: String -> IO ()
+-- authenticate = Lib.printRequest
 
 asciiToDecimal :: String -> Double
 asciiToDecimal s = 
