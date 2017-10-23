@@ -33,26 +33,26 @@ main = do
                            , platform    = "browser"
                            }
     response <- (Lib.requestJSON $ rootUrl appConfig) :: IO (Either String T.Environments)
-    either putStrLn (\x -> bleh appConfig x) $ response
+    either putStrLn (\x -> selectEnvironment appConfig x) $ response
 
-bleh :: Config -> T.Environments -> IO()
-bleh config environments = do
+selectEnvironment :: Config -> T.Environments -> IO()
+selectEnvironment config environments = do
     let environmentValue = HMS.lookup (environment config) $ T.environments environments
     let maybeConfigHost = environmentValue >>= T.configHostSsl
     M.maybe
         (putStrLn "Unable to get environment list")
-        (\configHost -> next configHost (platform config) $ environment config)
+        (\configHost -> getEnvironments configHost (platform config) $ environment config)
         maybeConfigHost
 --main = print $ (asciiToDecimal "-$104,689.357") * 2
 
-next :: String -> String -> String -> IO ()
-next configHost platform env = do
+getEnvironments :: String -> String -> String -> IO ()
+getEnvironments configHost platform env = do
     let url = printf "GET %s/env-list/%s-sling.json" configHost $ platform
     hostnames <- (Lib.requestJSON url) :: IO (Either String TH.HostnameEnvironments)
-    either putStrLn (\x -> bleh2 platform env x) $ hostnames
+    either putStrLn (\x -> getPeFile platform env x) $ hostnames
 
-bleh2 :: String -> String -> TH.HostnameEnvironments -> IO ()
-bleh2 platform env hostnames = do
+getPeFile :: String -> String -> TH.HostnameEnvironments -> IO ()
+getPeFile platform env hostnames = do
     let selectedHostnames = HMS.lookup env (TH.environments (hostnames :: TH.HostnameEnvironments))
     M.maybe
         (putStrLn "No ums endpoint found")
