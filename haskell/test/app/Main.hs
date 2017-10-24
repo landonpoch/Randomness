@@ -19,6 +19,7 @@ import qualified Data.Text.Lazy.IO as T
 import qualified Data.Text.Lazy.Encoding as T
 import qualified Data.ByteString.Lazy.Internal as I
 import Text.Printf (printf)
+import Control.Monad.Writer
 
 data Config = Config
     { rootUrl     :: !String
@@ -27,7 +28,18 @@ data Config = Config
     } deriving Show
 
 main :: IO ()
-main = do
+main = print . runWriter $ gcd' 18 3
+
+gcd' :: Int -> Int -> Writer [String] Int
+gcd' a b
+    | b == 0 = do
+        return a
+    | otherwise = do
+        tell [show a ++ " `mod` " ++ show b ++ " = " ++ show (a `mod` b)]
+        gcd' b (a `mod` b)
+
+run :: IO ()
+run = do
     let appConfig = Config { rootUrl     = "GET https://webapp.movetv.com/npv/cfdir.json"
                            , environment = "beta"
                            , platform    = "browser"
