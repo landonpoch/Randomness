@@ -1,10 +1,11 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Lib
     ( requestJSON
     , printRequest
     , writerRequest
     ) where
 
-import           Control.Monad                    ( (<=<) )
+import           Control.Monad                    ( (<=<), (>>) )
 import           Control.Monad.Writer
 import           Network.HTTP.Simple              ( getResponseBody
                                                   , httpJSON
@@ -14,7 +15,7 @@ import           Network.HTTP.Simple              ( getResponseBody
                                                   , Response 
                                                   )
 import           Data.Aeson                       ( FromJSON, eitherDecode )
-import qualified Data.ByteString.Lazy.Char8 as L8 ( ByteString, putStrLn )
+import qualified Data.ByteString.Lazy.Char8 as L8 ( ByteString, putStrLn, pack )
 
 type Url = String
 requestJSON :: (FromJSON a) => Url -> IO (Either String a)
@@ -32,11 +33,9 @@ printRequest url = do
 
 writerRequest :: (FromJSON a) => Url -> IO (Writer [L8.ByteString] (Either String a))
 writerRequest url = do
-    let response = request httpLBS $ url
-    resp <- response
-    return $ (\x -> do
-        tell [resp]
-        return $ eitherDecode x) resp
+    -- return $ tell [L8.pack url]
+    resp <- request httpLBS $ url
+    return $ tell [resp] >> (return $ eitherDecode resp)
 
 request :: (Request -> IO (Response a)) -> Url -> IO (a)
 request requestMechanism = fmap getResponseBody . requestMechanism <=< parseRequest

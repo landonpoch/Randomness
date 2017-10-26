@@ -31,13 +31,13 @@ data Config = Config
     } deriving Show
 
 main :: IO ()
-main = do
-    let bleh = LBS.toChunks "This is a test"
-    let bleh2 = SBS.unpack "This is another test"
-    let bleh3 = "This is yet another test" :: SBS.ByteString
-    let bleh4 = "This is a fourth test" :: LBS.ByteString
-    let bleh5 = "This is a fifth test"
-    putStrLn "test"
+main = random
+    -- let bleh = LBS.toChunks "This is a test"
+    -- let bleh2 = SBS.unpack "This is another test"
+    -- let bleh3 = "This is yet another test" :: SBS.ByteString
+    -- let bleh4 = "This is a fourth test" :: LBS.ByteString
+    -- let bleh5 = "This is a fifth test"
+    -- putStrLn "test"
 
 random :: IO ()
 random = do
