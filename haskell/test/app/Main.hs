@@ -19,6 +19,8 @@ import qualified Data.Text.Lazy.IO as T
 import qualified Data.Text.Lazy.Encoding as T
 import qualified Data.ByteString.Lazy.Internal as I
 import qualified Data.ByteString.Lazy.Char8 as L8 ( ByteString, putStrLn )
+import qualified Data.ByteString.Lazy as LBS
+import qualified Data.ByteString as SBS
 import Text.Printf (printf)
 import Control.Monad.Writer
 
@@ -30,6 +32,15 @@ data Config = Config
 
 main :: IO ()
 main = do
+    let bleh = LBS.toChunks "This is a test"
+    let bleh2 = SBS.unpack "This is another test"
+    let bleh3 = "This is yet another test" :: SBS.ByteString
+    let bleh4 = "This is a fourth test" :: LBS.ByteString
+    let bleh5 = "This is a fifth test"
+    putStrLn "test"
+
+random :: IO ()
+random = do
     resp <- writerRequest "GET https://webapp.movetv.com/npv/cfdir.json"
     let val = runWriter (resp :: Writer [L8.ByteString] (Either String T.Environments))
     mapM_ print . fst $ val
