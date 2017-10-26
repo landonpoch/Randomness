@@ -18,6 +18,7 @@ import qualified Types.Hostnames as TH
 import qualified Data.Text.Lazy.IO as T
 import qualified Data.Text.Lazy.Encoding as T
 import qualified Data.ByteString.Lazy.Internal as I
+import qualified Data.ByteString.Lazy.Char8 as L8 ( ByteString, putStrLn )
 import Text.Printf (printf)
 import Control.Monad.Writer
 
@@ -28,11 +29,17 @@ data Config = Config
     } deriving Show
 
 main :: IO ()
-main = print . runWriter $ gcd' 18 3
+main = do
+    resp <- writerRequest "GET https://webapp.movetv.com/npv/cfdir.json"
+    let val = runWriter (resp :: Writer [L8.ByteString] (Either String T.Environments))
+    mapM_ print . fst $ val
+    mapM_ L8.putStrLn . snd $ val
+    -- mapM_ putStrLn $ snd $ runWriter $ gcd' 2030402 30408
 
 gcd' :: Int -> Int -> Writer [String] Int
 gcd' a b
     | b == 0 = do
+        tell ["Finished with value " ++ show a]
         return a
     | otherwise = do
         tell [show a ++ " `mod` " ++ show b ++ " = " ++ show (a `mod` b)]
