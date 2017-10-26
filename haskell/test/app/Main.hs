@@ -43,8 +43,8 @@ random :: IO ()
 random = do
     resp <- writerRequest "GET https://webapp.movetv.com/npv/cfdir.json"
     let val = runWriter (resp :: Writer [L8.ByteString] (Either String T.Environments))
-    mapM_ print . fst $ val
     mapM_ L8.putStrLn . snd $ val
+    -- mapM_ print . fst $ val
     -- mapM_ putStrLn $ snd $ runWriter $ gcd' 2030402 30408
 
 gcd' :: Int -> Int -> Writer [String] Int

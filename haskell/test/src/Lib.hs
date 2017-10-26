@@ -33,9 +33,10 @@ printRequest url = do
 
 writerRequest :: (FromJSON a) => Url -> IO (Writer [L8.ByteString] (Either String a))
 writerRequest url = do
-    -- return $ tell [L8.pack url]
     resp <- request httpLBS $ url
-    return $ tell [resp] >> (return $ eitherDecode resp)
+    return $  tell [L8.pack url] 
+           >> tell [resp] 
+           >> (return $ eitherDecode resp)
 
 request :: (Request -> IO (Response a)) -> Url -> IO (a)
 request requestMechanism = fmap getResponseBody . requestMechanism <=< parseRequest
