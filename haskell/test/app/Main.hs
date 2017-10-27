@@ -1,28 +1,30 @@
 {-# OPTIONS_GHC -funbox-strict-fields #-}  -- https://github.com/tibbe/haskell-style-guide/blob/master/haskell-style.md
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE RecordWildCards   #-}
 module Main where
 
-import Data.Aeson
-import Data.Aeson.Types
-import GHC.Exts
-import Lib
-import Data.Scientific as Scientific
-import Data.Text as Text hiding             ( map, filter, zipWith, foldl, head )
-import qualified Data.HashMap.Lazy as HML   ( member )
-import qualified Data.HashMap.Strict as HMS ( lookup )
-import qualified Data.List as L hiding      ( map, filter, zipWith, foldl, head )
-import qualified Data.Maybe as M
-import qualified Types.Environments as T
-import qualified Types.Hostnames as TH
-import qualified Data.Text.Lazy.IO as T
-import qualified Data.Text.Lazy.Encoding as T
+import           Control.Monad.Writer
+import           Data.Aeson
+import           Data.Aeson.Types
+import qualified Data.ByteString               as SBS
+import qualified Data.ByteString.Lazy          as LBS
+import qualified Data.ByteString.Lazy.Char8    as L8 (ByteString, putStrLn)
 import qualified Data.ByteString.Lazy.Internal as I
-import qualified Data.ByteString.Lazy.Char8 as L8 ( ByteString, putStrLn )
-import qualified Data.ByteString.Lazy as LBS
-import qualified Data.ByteString as SBS
-import Text.Printf (printf)
-import Control.Monad.Writer
+import qualified Data.HashMap.Lazy             as HML (member)
+import qualified Data.HashMap.Strict           as HMS (lookup)
+import qualified Data.List                     as L hiding (filter, foldl, head,
+                                                     map, zipWith)
+import qualified Data.Maybe                    as M
+import           Data.Scientific               as Scientific
+import           Data.Text                     as Text hiding (filter, foldl,
+                                                        head, map, zipWith)
+import qualified Data.Text.Lazy.Encoding       as T
+import qualified Data.Text.Lazy.IO             as T
+import           GHC.Exts
+import           Lib
+import           Text.Printf                   (printf)
+import qualified Types.Environments            as T
+import qualified Types.Hostnames               as TH
 
 data Config = Config
     { rootUrl     :: !String
@@ -63,7 +65,7 @@ run = do
                            , platform    = "browser"
                            }
     response <- (Lib.requestJSON $ rootUrl appConfig) :: IO (Either String T.Environments)
-    either putStrLn (\x -> selectEnvironment appConfig x) $ response
+    either putStrLn (selectEnvironment appConfig) response
 
 selectEnvironment :: Config -> T.Environments -> IO()
 selectEnvironment config environments = do
@@ -77,9 +79,9 @@ selectEnvironment config environments = do
 
 getEnvironments :: String -> String -> String -> IO ()
 getEnvironments configHost platform env = do
-    let url = printf "GET %s/env-list/%s-sling.json" configHost $ platform
-    hostnames <- (Lib.requestJSON url) :: IO (Either String TH.HostnameEnvironments)
-    either putStrLn (\x -> getPeFile platform env x) $ hostnames
+    let url = printf "GET %s/env-list/%s-sling.json" configHost platform
+    hostnames <- Lib.requestJSON url :: IO (Either String TH.HostnameEnvironments)
+    either putStrLn (getPeFile platform env) hostnames
 
 getPeFile :: String -> String -> TH.HostnameEnvironments -> IO ()
 getPeFile platform env hostnames = do
@@ -87,7 +89,7 @@ getPeFile platform env hostnames = do
     M.maybe
         (putStrLn "No ums endpoint found")
         (\x -> do
-            let peUrl = (printf "GET %s/%s/sling/pe-%s.xml.enc" (TH.appCastUrl x) platform env)
+            let peUrl = printf "GET %s/%s/sling/pe-%s.xml.enc" (TH.appCastUrl x) platform env
             Lib.printRequest peUrl)
         selectedHostnames
 
@@ -95,23 +97,23 @@ getPeFile platform env hostnames = do
 -- authenticate = Lib.printRequest
 
 asciiToDecimal :: String -> Double
-asciiToDecimal s = 
+asciiToDecimal s =
     let characters = "0123456789"
-        reversed   = foldl (\acc x -> x:acc) [] s
+        reversed   = foldl (flip (:)) [] s
     in (if head s == '-' then negate else id) . sum $ zipWith (*)
-        (map fromIntegral . M.catMaybes . map (`L.elemIndex` characters) $ filter (`elem` characters) reversed)
+        (map fromIntegral . M.mapMaybe (`L.elemIndex` characters) $ filter (`elem` characters) reversed)
         (map (10.0^^) [negate $ M.fromMaybe 0 (L.elemIndex '.' reversed)..])
-    
+
 json :: IO()
 json = do
     let encoded = encode ([1,2,3] :: [Int])
     prettyPrint encoded
     print (decode encoded :: Maybe [Int])
     print (eitherDecode encoded :: Either String [Int])
-    let val = (Object $ fromList
+    let val = Object $ fromList
                   [ ("numbers", Array $ fromList [Number 1, Number 2, Number 3])
                   , ("test", Bool True)
-                  ] :: Value)
+                  ] :: Value
     let encodedObj = encode val
     prettyPrint encodedObj
     print (eitherDecode encodedObj :: Either String TestObj)
@@ -121,7 +123,7 @@ json = do
     let people = [ Person { name = "Test Person 1", age = 16 }
                  , Person { name = "Test Person 2", age = 15 }
                  ]
-    let encodedPeople = (encode people)
+    let encodedPeople = encode people
     prettyPrint encodedPeople
     print (eitherDecode encodedPeople :: Either String [Person])
     let prims = [PrimInt 4, PrimString "hello!"]
@@ -157,8 +159,8 @@ toInt = forceInt . floatingOrInteger
 instance FromJSON Prim where
     parseJSON (String x) = return . PrimString . unpack $ x
     parseJSON (Number x) = tryInt . toInt $ x
-        where tryInt (Nothing) = fail "Unsupported array item"
-              tryInt (Just y)  = return . PrimInt $ y
+        where tryInt Nothing  = fail "Unsupported array item"
+              tryInt (Just y) = return . PrimInt $ y
     parseJSON _ = fail "Unsuppored array item"
 
 instance ToJSON Prim where
@@ -189,7 +191,7 @@ instance FromJSON Person where
 
 instance ToJSON Person where
     toJSON Person{..} = object [
-        "name" .= name, 
+        "name" .= name,
         "age"  .= age]
 
 data Thing = Thing
