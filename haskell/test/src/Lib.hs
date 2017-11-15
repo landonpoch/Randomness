@@ -1,7 +1,8 @@
 module Lib
     ( requestJSON
     , printRequest
-    , writerRequest
+    , traceRequest
+    , TracedRequest
     ) where
 
 import           Control.Monad              ((<=<), (>>))
@@ -25,8 +26,9 @@ printRequest url = do
     putStrLn url
     L8.putStrLn <=< request httpLBS $ url
 
-writerRequest :: (FromJSON a) => Url -> IO (Writer [L8.ByteString] (Either String a))
-writerRequest url = do
+type TracedRequest a = Writer [L8.ByteString] (Either String a)
+traceRequest :: (FromJSON a) => Url -> IO (TracedRequest a)
+traceRequest url = do
     resp <- request httpLBS url
     return $  tell [L8.pack url]
            >> tell [resp]

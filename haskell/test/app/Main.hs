@@ -43,8 +43,8 @@ main = random
 
 random :: IO ()
 random = do
-    resp <- writerRequest "GET https://webapp.movetv.com/npv/cfdir.json"
-    let val = runWriter (resp :: Writer [L8.ByteString] (Either String T.Environments))
+    resp <- traceRequest "GET https://webapp.movetv.com/npv/cfdir.json"
+    let val = runWriter (resp :: Lib.TracedRequest T.Environments)
     mapM_ L8.putStrLn . snd $ val
     -- mapM_ print . fst $ val
     -- mapM_ putStrLn $ snd $ runWriter $ gcd' 2030402 30408
