@@ -5,21 +5,24 @@ module Lib
     , TracedRequest
     ) where
 
+import           Control.Arrow              (left)
+import           Control.Exception          (displayException)
 import           Control.Monad              ((<=<), (>>))
 import           Control.Monad.Writer
 import           Data.Aeson                 (FromJSON, eitherDecode)
 import qualified Data.ByteString.Lazy.Char8 as L8 (ByteString, pack, putStrLn)
-import           Network.HTTP.Simple        (Request, Response, getResponseBody,
-                                             httpJSON, httpLBS, parseRequest)
+import           Network.HTTP.Simple        (JSONException, Request, Response,
+                                             getResponseBody, httpJSONEither,
+                                             httpLBS, parseRequest)
 
 type Url = String
 requestJSON :: (FromJSON a) => Url -> IO (Either String a)
 requestJSON url = do
-    putStrLn url
-    let response = request httpLBS url
-    resp <- response
-    L8.putStrLn resp
-    return $ eitherDecode resp
+    parsedRequest <- parseRequest url
+    test <- httpJSONEither parsedRequest
+    let test2 = getResponseBody test
+    let test3 = left displayException test2
+    return test3
 
 printRequest :: Url -> IO ()
 printRequest url = do
