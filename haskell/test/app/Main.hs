@@ -43,9 +43,14 @@ main = random
 
 random :: IO ()
 random = do
-    resp <- traceRequest "GET https://webapp.movetv.com/npv/cfdir.json"
+    let appConfig = Config { rootUrl     = "GET https://webapp.movetv.com/npv/cfdir.json"
+                           , environment = "beta"
+                           , platform    = "browser"
+                           }
+    resp <- traceRequest $ rootUrl appConfig
     let val = runWriter (resp :: Lib.TracedRequest T.Environments)
     mapM_ L8.putStrLn . snd $ val
+    either putStrLn (selectEnvironment appConfig) (fst val)
     -- mapM_ print . fst $ val
     -- mapM_ putStrLn $ snd $ runWriter $ gcd' 2030402 30408
 
@@ -67,6 +72,8 @@ run = do
     response <- (Lib.requestJSON $ rootUrl appConfig) :: IO (Either String T.Environments)
     either putStrLn (selectEnvironment appConfig) response
 
+-- TODO: Unwind these calls that get made inside of calls.  They are all nested
+-- and instead should be done in some sort of a controller function.
 selectEnvironment :: Config -> T.Environments -> IO()
 selectEnvironment config environments = do
     let environmentValue = HMS.lookup (environment config) $ T.environments environments
@@ -80,8 +87,10 @@ selectEnvironment config environments = do
 getEnvironments :: String -> String -> String -> IO ()
 getEnvironments configHost platform env = do
     let url = printf "GET %s/env-list/%s-sling.json" configHost platform
-    hostnames <- Lib.requestJSON url :: IO (Either String TH.HostnameEnvironments)
-    either putStrLn (getPeFile platform env) hostnames
+    response <- traceRequest url
+    let hostnames = runWriter (response :: Lib.TracedRequest TH.HostnameEnvironments)
+    mapM_ L8.putStrLn . snd $ hostnames
+    either putStrLn (getPeFile platform env) $ fst hostnames
 
 getPeFile :: String -> String -> TH.HostnameEnvironments -> IO ()
 getPeFile platform env hostnames = do

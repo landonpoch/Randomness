@@ -11,18 +11,13 @@ import           Control.Monad              ((<=<), (>>))
 import           Control.Monad.Writer
 import           Data.Aeson                 (FromJSON, eitherDecode)
 import qualified Data.ByteString.Lazy.Char8 as L8 (ByteString, pack, putStrLn)
-import           Network.HTTP.Simple        (JSONException, Request, Response,
-                                             getResponseBody, httpJSONEither,
-                                             httpLBS, parseRequest)
+import           Network.HTTP.Simple        (Request, Response, getResponseBody,
+                                             httpJSONEither, httpLBS,
+                                             parseRequest)
 
 type Url = String
 requestJSON :: (FromJSON a) => Url -> IO (Either String a)
-requestJSON url = do
-    parsedRequest <- parseRequest url
-    test <- httpJSONEither parsedRequest
-    let test2 = getResponseBody test
-    let test3 = left displayException test2
-    return test3
+requestJSON url = fmap (left displayException) (request httpJSONEither url)
 
 printRequest :: Url -> IO ()
 printRequest url = do
