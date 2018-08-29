@@ -1,12 +1,12 @@
-{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards   #-}
 module Types.Hostnames
     ( Hostnames(..)
     , HostnameEnvironments(..)
     ) where
 
-import Data.HashMap.Strict (HashMap)
-import Data.Aeson          (FromJSON, parseJSON, withObject, (.:), (.:?))
+import           Data.Aeson
+import           Data.HashMap.Strict (HashMap)
 
 data HostnameEnvironments = HostnameEnvironments { environments :: HashMap String Hostnames } deriving Show
 
@@ -15,8 +15,16 @@ instance FromJSON HostnameEnvironments where
         environments <- o .: "environments"
         return HostnameEnvironments{..}
 
+instance ToJSON HostnameEnvironments where
+  toJSON HostnameEnvironments{..} = object [
+      "environments" .= environments ]
+
+instance ToJSON Hostnames where
+  toJSON Hostnames{..} = object[
+    "serviceId" .= serviceId ]
+
 data Hostnames = Hostnames { serviceId         :: !String
-                           , chromecastAppId   :: !String 
+                           , chromecastAppId   :: Maybe String
                            , cmsUrl            :: !String
                            , dmsUrl            :: !String
                            , geoUrl            :: !String
@@ -28,9 +36,9 @@ data Hostnames = Hostnames { serviceId         :: !String
                            , cmwNgUrl          :: Maybe String
                            , extAuthUrl        :: !String
                            , websiteUrl        :: !String
-                           , appCastUrl        :: !String
-                           , launchUrl         :: !String
-                           , upgradeUrl        :: !String
+                           , appCastUrl        :: Maybe String
+                           , launchUrl         :: Maybe String
+                           , upgradeUrl        :: Maybe String
                            , statsUrl          :: !String
                            , channelsUrl       :: !String
                            , signUpLayoutUrl   :: !String
@@ -40,7 +48,7 @@ data Hostnames = Hostnames { serviceId         :: !String
 instance FromJSON Hostnames where
     parseJSON = withObject "hostnames" $ \o -> do
         serviceId         <- o .:  "service_id"
-        chromecastAppId   <- o .:  "chromecast_app_id"
+        chromecastAppId   <- o .:?  "chromecast_app_id"
         cmsUrl            <- o .:  "cms_url"
         dmsUrl            <- o .:  "dms_url"
         geoUrl            <- o .:  "geo_url"
@@ -52,9 +60,9 @@ instance FromJSON Hostnames where
         cmwNgUrl          <- o .:? "cmwng_url"
         extAuthUrl        <- o .:  "extauth_url"
         websiteUrl        <- o .:  "website_url"
-        appCastUrl        <- o .:  "appcast_url"
-        launchUrl         <- o .:  "launch_url"
-        upgradeUrl        <- o .:  "upgrade_url"
+        appCastUrl        <- o .:?  "appcast_url"
+        launchUrl         <- o .:?  "launch_url"
+        upgradeUrl        <- o .:?  "upgrade_url"
         statsUrl          <- o .:  "stats_url"
         channelsUrl       <- o .:  "channels_url"
         signUpLayoutUrl   <- o .:  "sign_up_layout_url"

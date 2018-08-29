@@ -1,12 +1,12 @@
-{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards   #-}
 module Types.Environments
     ( Environments(..)
     , Environment(..)
     ) where
 
-import Data.HashMap.Strict (HashMap)
-import Data.Aeson          (FromJSON, parseJSON, withObject, (.:), (.:?))
+import           Data.Aeson
+import           Data.HashMap.Strict (HashMap)
 
 data Environment = Environment
     { configHost    :: !String
@@ -21,7 +21,16 @@ instance FromJSON Environment where
         configHostSsl <- o .:? "config_host_ssl"
         return Environment{..}
 
+instance ToJSON Environment where
+  toJSON Environment{..} = object [
+    "config_host" .= configHost
+    , "config_host_ssl" .= configHostSsl ]
+
 instance FromJSON Environments where
     parseJSON = withObject "environments" $ \o -> do
         environments <- o .: "environments"
         return Environments{..}
+
+instance ToJSON Environments where
+  toJSON Environments{..} = object [
+    "environments" .= environments ]
