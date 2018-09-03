@@ -1,6 +1,6 @@
-module Types.Exceptions() where
---
--- type Error = JsonParseError | KeyNotFoundError
---
--- newtype JsonParseError = JsonParseError String
--- newtype KeyNotFoundError = KeyNotFoundError String
+module Types.Exceptions
+  (Error(..)) where
+
+type ErrorMsg = String
+data Error = JsonParseError ErrorMsg
+           | KeyNotFoundError ErrorMsg

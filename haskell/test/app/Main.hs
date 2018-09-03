@@ -26,6 +26,7 @@ import           GHC.Exts
 import           Lib
 import           Text.Printf                   (printf)
 import qualified Types.Environments            as T
+import           Types.Exceptions              (Error (JsonParseError, KeyNotFoundError))
 import qualified Types.Hostnames               as TH
 
 data Config = Config
@@ -43,14 +44,15 @@ main :: IO ()
 main = do
   response <- runExceptT $ bootstrap appConfig
   case response of
-       Left l  -> putStrLn l
-       Right r -> L8.putStrLn r
+       Left (JsonParseError msg)   -> putStrLn msg
+       Left (KeyNotFoundError msg) -> putStrLn msg
+       Right r                     -> L8.putStrLn r
 
 -- TODO: see if you can reintroduce WriterT into the stack
--- TODO: Use real exception types instead of strings
+-- TODO: Take a look at IO Exceptions instead of ExceptT as an alternative
 -- see: https://softwareengineering.stackexchange.com/questions/252977/cleanest-way-to-report-errors-in-haskell
 -- see: https://www.schoolofhaskell.com/user/commercial/content/exceptions-best-practices
-bootstrap :: Config -> ExceptT String IO I.ByteString
+bootstrap :: Config -> ExceptT Error IO I.ByteString
 bootstrap config = do
   let targetEnvironment = environment config
   let targetPlatform = platform config
@@ -61,33 +63,33 @@ bootstrap config = do
   configHostname <- getConfigHost selectedHostnames
   liftIO $ getPeFile configHostname targetPlatform targetEnvironment
 
-getEnvironments :: String -> ExceptT String IO T.Environments
-getEnvironments = mtlRequest
+getEnvironments :: String -> ExceptT Error IO T.Environments
+getEnvironments = jsonRequest
 
-selectEnvironment :: T.Environments -> String -> ExceptT String IO T.Environment
+selectEnvironment :: T.Environments -> String -> ExceptT Error IO T.Environment
 selectEnvironment environments env = do
   let maybeEnvironment = HMS.lookup env $ T.environments environments
-  toExceptT maybeEnvironment "target environment doesn't exist"
+  toExceptT maybeEnvironment $ KeyNotFoundError "target environment doesn't exist"
 
-getHostnames :: String -> String -> ExceptT String IO TH.HostnameEnvironments
+getHostnames :: String -> String -> ExceptT Error IO TH.HostnameEnvironments
 getHostnames configHostname platform = do
   let hostnamesUrl = printf "GET %s/env-list/%s-sling.json" configHostname platform
-  mtlRequest hostnamesUrl
+  jsonRequest hostnamesUrl
 
-selectHostnames :: TH.HostnameEnvironments -> String -> ExceptT String IO TH.Hostnames
+selectHostnames :: TH.HostnameEnvironments -> String -> ExceptT Error IO TH.Hostnames
 selectHostnames hostnamesByEnvironment env = do
   let maybeHostnames = HMS.lookup env $ TH.environments hostnamesByEnvironment
-  toExceptT maybeHostnames "environment missing hostnames"
+  toExceptT maybeHostnames $ KeyNotFoundError "environment missing hostnames"
 
-getConfigHost :: TH.Hostnames -> ExceptT String IO String
-getConfigHost selectedHostnames = toExceptT (TH.appCastUrl selectedHostnames) "config url is missing from hostnames"
+getConfigHost :: TH.Hostnames -> ExceptT Error IO String
+getConfigHost selectedHostnames = toExceptT (TH.appCastUrl selectedHostnames) $ KeyNotFoundError "config url is missing from hostnames"
 
 getPeFile :: String -> String -> String -> IO I.ByteString
 getPeFile configHost platform env = do
   let peUrl = printf "GET %s/%s/sling/pe-%s.xml.enc" configHost platform env
-  textRequest peUrl
+  request peUrl
 
-toExceptT :: Maybe a -> String -> ExceptT String IO a
+toExceptT :: Maybe a -> Error -> ExceptT Error IO a
 toExceptT m err = case m of
   Nothing  -> throwError err
   (Just x) -> return x
