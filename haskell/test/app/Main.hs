@@ -35,7 +35,7 @@ data Config = Config
     , platform    :: !String
     } deriving Show
 
-appConfig = Config { rootUrl     = "GET https://webapp.movetv.com/npv/cfdir.json"
+appConfig = Config { rootUrl     = "https://webapp.movetv.com/npv/cfdir.json"
                    , environment = "beta"
                    , platform    = "browser"
                    }
@@ -64,7 +64,8 @@ bootstrap config = do
   liftIO $ getPeFile configHostname targetPlatform targetEnvironment
 
 getEnvironments :: String -> EIO T.Environments
-getEnvironments = jsonRequest
+getEnvironments rootUrl = jsonRequest $ printf "GET %s" rootUrl
+
 
 selectEnvironment :: T.Environments -> String -> EIO T.Environment
 selectEnvironment environments env = do
