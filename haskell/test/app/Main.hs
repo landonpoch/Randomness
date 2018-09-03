@@ -3,7 +3,7 @@
 {-# LANGUAGE RecordWildCards   #-}
 module Main where
 
-import           Control.Monad.Except          (ExceptT, runExceptT, throwError)
+import           Control.Monad.Except          (runExceptT, throwError)
 import           Control.Monad.IO.Class        (liftIO)
 import           Data.Aeson
 import           Data.Aeson.Types
@@ -52,7 +52,7 @@ main = do
 -- TODO: Take a look at IO Exceptions instead of ExceptT as an alternative
 -- see: https://softwareengineering.stackexchange.com/questions/252977/cleanest-way-to-report-errors-in-haskell
 -- see: https://www.schoolofhaskell.com/user/commercial/content/exceptions-best-practices
-bootstrap :: Config -> ExceptT Error IO I.ByteString
+bootstrap :: Config -> EIO I.ByteString
 bootstrap config = do
   let targetEnvironment = environment config
   let targetPlatform = platform config
@@ -63,25 +63,25 @@ bootstrap config = do
   configHostname <- getConfigHost selectedHostnames
   liftIO $ getPeFile configHostname targetPlatform targetEnvironment
 
-getEnvironments :: String -> ExceptT Error IO T.Environments
+getEnvironments :: String -> EIO T.Environments
 getEnvironments = jsonRequest
 
-selectEnvironment :: T.Environments -> String -> ExceptT Error IO T.Environment
+selectEnvironment :: T.Environments -> String -> EIO T.Environment
 selectEnvironment environments env = do
   let maybeEnvironment = HMS.lookup env $ T.environments environments
   toExceptT maybeEnvironment $ KeyNotFoundError "target environment doesn't exist"
 
-getHostnames :: String -> String -> ExceptT Error IO TH.HostnameEnvironments
+getHostnames :: String -> String -> EIO TH.HostnameEnvironments
 getHostnames configHostname platform = do
   let hostnamesUrl = printf "GET %s/env-list/%s-sling.json" configHostname platform
   jsonRequest hostnamesUrl
 
-selectHostnames :: TH.HostnameEnvironments -> String -> ExceptT Error IO TH.Hostnames
+selectHostnames :: TH.HostnameEnvironments -> String -> EIO TH.Hostnames
 selectHostnames hostnamesByEnvironment env = do
   let maybeHostnames = HMS.lookup env $ TH.environments hostnamesByEnvironment
   toExceptT maybeHostnames $ KeyNotFoundError "environment missing hostnames"
 
-getConfigHost :: TH.Hostnames -> ExceptT Error IO String
+getConfigHost :: TH.Hostnames -> EIO String
 getConfigHost selectedHostnames = toExceptT (TH.appCastUrl selectedHostnames) $ KeyNotFoundError "config url is missing from hostnames"
 
 getPeFile :: String -> String -> String -> IO I.ByteString
@@ -89,7 +89,7 @@ getPeFile configHost platform env = do
   let peUrl = printf "GET %s/%s/sling/pe-%s.xml.enc" configHost platform env
   request peUrl
 
-toExceptT :: Maybe a -> Error -> ExceptT Error IO a
+toExceptT :: Maybe a -> Error -> EIO a
 toExceptT m err = case m of
   Nothing  -> throwError err
   (Just x) -> return x

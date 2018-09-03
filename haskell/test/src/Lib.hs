@@ -2,6 +2,7 @@ module Lib
     ( jsonRequest
     , request
     , Url
+    , EIO
     ) where
 
 import           Control.Monad              ((<=<))
@@ -14,8 +15,9 @@ import           Network.HTTP.Simple        (Request, Response, getResponseBody,
 import           Types.Exceptions           (Error (JsonParseError))
 
 type Url = String
+type EIO = ExceptT Error IO
 
-jsonRequest :: (FromJSON a) => Url -> ExceptT Error IO a
+jsonRequest :: (FromJSON a) => Url -> EIO a
 jsonRequest url = do
   response <- liftIO $ request url
   case eitherDecode response of
