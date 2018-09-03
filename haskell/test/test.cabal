@@ -28,6 +28,7 @@ library
                      , unordered-containers
                      , mtl
                      , either
+                     , transformers
   default-language:    Haskell2010
 
 executable test-exe

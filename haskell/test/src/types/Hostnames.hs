@@ -8,7 +8,7 @@ module Types.Hostnames
 import           Data.Aeson
 import           Data.HashMap.Strict (HashMap)
 
-data HostnameEnvironments = HostnameEnvironments { environments :: HashMap String Hostnames } deriving Show
+newtype HostnameEnvironments = HostnameEnvironments { environments :: HashMap String Hostnames } deriving Show
 
 instance FromJSON HostnameEnvironments where
     parseJSON = withObject "hostnameEnvironments" $ \o -> do
@@ -21,7 +21,7 @@ instance ToJSON HostnameEnvironments where
 
 instance ToJSON Hostnames where
   toJSON Hostnames{..} = object[
-    "serviceId" .= serviceId ]
+    "serviceId" .= serviceId ] -- TODO: Finish mapping if necessary
 
 data Hostnames = Hostnames { serviceId         :: !String
                            , chromecastAppId   :: Maybe String
@@ -48,7 +48,7 @@ data Hostnames = Hostnames { serviceId         :: !String
 instance FromJSON Hostnames where
     parseJSON = withObject "hostnames" $ \o -> do
         serviceId         <- o .:  "service_id"
-        chromecastAppId   <- o .:?  "chromecast_app_id"
+        chromecastAppId   <- o .:? "chromecast_app_id"
         cmsUrl            <- o .:  "cms_url"
         dmsUrl            <- o .:  "dms_url"
         geoUrl            <- o .:  "geo_url"
@@ -60,9 +60,9 @@ instance FromJSON Hostnames where
         cmwNgUrl          <- o .:? "cmwng_url"
         extAuthUrl        <- o .:  "extauth_url"
         websiteUrl        <- o .:  "website_url"
-        appCastUrl        <- o .:?  "appcast_url"
-        launchUrl         <- o .:?  "launch_url"
-        upgradeUrl        <- o .:?  "upgrade_url"
+        appCastUrl        <- o .:? "appcast_url"
+        launchUrl         <- o .:? "launch_url"
+        upgradeUrl        <- o .:? "upgrade_url"
         statsUrl          <- o .:  "stats_url"
         channelsUrl       <- o .:  "channels_url"
         signUpLayoutUrl   <- o .:  "sign_up_layout_url"
