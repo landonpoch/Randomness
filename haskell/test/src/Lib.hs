@@ -1,9 +1,12 @@
 module Lib
     ( jsonRequest
     , request
+    , tracedRequest
+    , tracedJsonRequest
     , Url
     , EIO
     , WEIO
+    , WIO
     ) where
 
 import           Control.Monad              ((<=<))
@@ -19,18 +22,34 @@ import           Types.Exceptions           (Error (JsonParseError))
 type Url = String
 type EIO = ExceptT Error IO
 type WEIO = WriterT L8.ByteString EIO
+type WIO = WriterT L8.ByteString IO
 
 jsonRequest :: (FromJSON a) => Url -> WEIO a
 jsonRequest url = do
   response <- request url
   case eitherDecode response of
-       (Left err) -> throwError $ JsonParseError err
+       (Left err) -> do
+          tell $ L8.pack err
+          throwError $ JsonParseError err
        (Right a)  -> return a
 
 request :: Url -> WEIO L8.ByteString
 request url = do
-  response <- httpLBS <=< parseRequest $ url
-  let parsedResponse = getResponseBody response
   tell (L8.pack (url ++ "\n"))
-    >> tell parsedResponse
-    >> return parsedResponse
+  response <- fmap getResponseBody (httpLBS <=< parseRequest $ url)
+  tell response
+  return response
+
+tracedJsonRequest :: (FromJSON a) => Url -> WIO a
+tracedJsonRequest url = do
+  response <- tracedRequest url
+  case eitherDecode response of
+    (Left err) -> fail err
+    (Right a)  -> return a
+
+tracedRequest :: Url -> WIO L8.ByteString
+tracedRequest url = do
+  tell (L8.pack (url ++ "\n"))
+  response <- fmap getResponseBody (httpLBS <=< parseRequest $url)
+  tell response
+  return response

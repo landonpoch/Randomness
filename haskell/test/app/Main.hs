@@ -48,6 +48,21 @@ main = do
     Left (JsonParseError msg)   -> putStrLn msg
     Left (KeyNotFoundError msg) -> putStrLn msg
     Right r                     -> L8.putStrLn $ snd r
+  response2 <- runWriterT $ tBootstrap appConfig
+  -- TODO: Handle exeptions, writer doesn't happen when exceptions occur here
+  L8.putStrLn $ snd response2
+
+tBootstrap :: Config -> WIO I.ByteString
+tBootstrap config = do
+  let targetEnvironment = environment config
+  let targetPlatform = platform config
+  environments <- tGetEnvironments $ rootUrl config
+  selectedEnv <- lift $ tSelectEnvironment environments targetEnvironment
+  hostnamesByEnvironment <- tGetHostnames (T.configHost selectedEnv) targetPlatform
+  selectedHostnames <- lift $ tSelectHostnames hostnamesByEnvironment targetEnvironment
+  configHostname <- lift $ tGetConfigHost selectedHostnames
+  peXml <- tGetPeFile configHostname targetPlatform targetEnvironment
+  return $ parsePeFile peXml
 
 -- TODO: Take a look at IO Exceptions instead of ExceptT as an alternative
 -- see: https://softwareengineering.stackexchange.com/questions/252977/cleanest-way-to-report-errors-in-haskell
@@ -61,33 +76,70 @@ bootstrap config = do
   hostnamesByEnvironment <- getHostnames (T.configHost selectedEnv) targetPlatform
   selectedHostnames <- lift $ selectHostnames hostnamesByEnvironment targetEnvironment
   configHostname <- lift $ getConfigHost selectedHostnames
-  getPeFile configHostname targetPlatform targetEnvironment
+  peXml <- getPeFile configHostname targetPlatform targetEnvironment
+  return $ parsePeFile peXml
+
+tGetEnvironments :: String -> WIO T.Environments
+tGetEnvironments rootUrl = tracedJsonRequest $ printf "GET %s" rootUrl
 
 getEnvironments :: String -> WEIO T.Environments
 getEnvironments rootUrl = jsonRequest $ printf "GET %s" rootUrl
+
+tSelectEnvironment :: T.Environments -> String -> IO T.Environment
+tSelectEnvironment environments env = do
+  let maybeEnvironment = HMS.lookup env $ T.environments environments
+  case maybeEnvironment of
+    Nothing  -> fail "target environment doesn't exist"
+    (Just x) -> return x
 
 selectEnvironment :: T.Environments -> String -> EIO T.Environment
 selectEnvironment environments env = do
   let maybeEnvironment = HMS.lookup env $ T.environments environments
   toExceptT maybeEnvironment $ KeyNotFoundError "target environment doesn't exist"
 
+tGetHostnames :: String -> String -> WIO TH.HostnameEnvironments
+tGetHostnames configHostname platform = do
+  let hostnamesUrl = printf "GET %s/env-list/%s-sling.json" configHostname platform
+  tracedJsonRequest hostnamesUrl
+
 getHostnames :: String -> String -> WEIO TH.HostnameEnvironments
 getHostnames configHostname platform = do
   let hostnamesUrl = printf "GET %s/env-list/%s-sling.json" configHostname platform
   jsonRequest hostnamesUrl
+
+tSelectHostnames :: TH.HostnameEnvironments -> String -> IO TH.Hostnames
+tSelectHostnames hostnamesByEnvironment env = do
+  let maybeHostnames = HMS.lookup env $ TH.environments hostnamesByEnvironment
+  case maybeHostnames of
+    Nothing  -> fail "environment missing hostnames"
+    (Just x) -> return x
 
 selectHostnames :: TH.HostnameEnvironments -> String -> EIO TH.Hostnames
 selectHostnames hostnamesByEnvironment env = do
   let maybeHostnames = HMS.lookup env $ TH.environments hostnamesByEnvironment
   toExceptT maybeHostnames $ KeyNotFoundError "environment missing hostnames"
 
+tGetConfigHost :: TH.Hostnames -> IO String
+tGetConfigHost selectedHostnames =
+  case TH.appCastUrl selectedHostnames of
+    Nothing  -> fail "config url is missing from hostnames"
+    (Just x) -> return x
+
 getConfigHost :: TH.Hostnames -> EIO String
 getConfigHost selectedHostnames = toExceptT (TH.appCastUrl selectedHostnames) $ KeyNotFoundError "config url is missing from hostnames"
+
+tGetPeFile :: String -> String -> String -> WIO I.ByteString
+tGetPeFile configHost platform env = do
+  let peUrl = printf "GET %s/%s/sling/pe-%s.xml.enc" configHost platform env
+  tracedRequest peUrl
 
 getPeFile :: String -> String -> String -> WEIO I.ByteString
 getPeFile configHost platform env = do
   let peUrl = printf "GET %s/%s/sling/pe-%s.xml.enc" configHost platform env
   request peUrl
+
+parsePeFile :: I.ByteString -> I.ByteString
+parsePeFile = id -- TODO: parse the xml file and return a new ADT
 
 toExceptT :: Maybe a -> Error -> EIO a
 toExceptT m err = case m of
