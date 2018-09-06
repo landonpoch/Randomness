@@ -5,6 +5,7 @@ module Main where
 
 import           Control.Monad.Except          (runExceptT, throwError)
 import           Control.Monad.IO.Class        (liftIO)
+import           Control.Monad.Writer          (lift, runWriterT)
 import           Data.Aeson
 import           Data.Aeson.Types
 import qualified Data.ByteString               as SBS
@@ -42,37 +43,35 @@ appConfig = Config { rootUrl     = "https://webapp.movetv.com/npv/cfdir.json"
 
 main :: IO ()
 main = do
-  response <- runExceptT $ bootstrap appConfig
+  response <- runExceptT $ runWriterT $ bootstrap appConfig
   case response of
-       Left (JsonParseError msg)   -> putStrLn msg
-       Left (KeyNotFoundError msg) -> putStrLn msg
-       Right r                     -> L8.putStrLn r
+    Left (JsonParseError msg)   -> putStrLn msg
+    Left (KeyNotFoundError msg) -> putStrLn msg
+    Right r                     -> L8.putStrLn $ snd r
 
--- TODO: see if you can reintroduce WriterT into the stack
 -- TODO: Take a look at IO Exceptions instead of ExceptT as an alternative
 -- see: https://softwareengineering.stackexchange.com/questions/252977/cleanest-way-to-report-errors-in-haskell
 -- see: https://www.schoolofhaskell.com/user/commercial/content/exceptions-best-practices
-bootstrap :: Config -> EIO I.ByteString
+bootstrap :: Config -> WEIO I.ByteString
 bootstrap config = do
   let targetEnvironment = environment config
   let targetPlatform = platform config
   environments <- getEnvironments $ rootUrl config
-  selectedEnv <- selectEnvironment environments targetEnvironment
+  selectedEnv <- lift $ selectEnvironment environments targetEnvironment
   hostnamesByEnvironment <- getHostnames (T.configHost selectedEnv) targetPlatform
-  selectedHostnames <- selectHostnames hostnamesByEnvironment targetEnvironment
-  configHostname <- getConfigHost selectedHostnames
-  liftIO $ getPeFile configHostname targetPlatform targetEnvironment
+  selectedHostnames <- lift $ selectHostnames hostnamesByEnvironment targetEnvironment
+  configHostname <- lift $ getConfigHost selectedHostnames
+  getPeFile configHostname targetPlatform targetEnvironment
 
-getEnvironments :: String -> EIO T.Environments
+getEnvironments :: String -> WEIO T.Environments
 getEnvironments rootUrl = jsonRequest $ printf "GET %s" rootUrl
-
 
 selectEnvironment :: T.Environments -> String -> EIO T.Environment
 selectEnvironment environments env = do
   let maybeEnvironment = HMS.lookup env $ T.environments environments
   toExceptT maybeEnvironment $ KeyNotFoundError "target environment doesn't exist"
 
-getHostnames :: String -> String -> EIO TH.HostnameEnvironments
+getHostnames :: String -> String -> WEIO TH.HostnameEnvironments
 getHostnames configHostname platform = do
   let hostnamesUrl = printf "GET %s/env-list/%s-sling.json" configHostname platform
   jsonRequest hostnamesUrl
@@ -85,7 +84,7 @@ selectHostnames hostnamesByEnvironment env = do
 getConfigHost :: TH.Hostnames -> EIO String
 getConfigHost selectedHostnames = toExceptT (TH.appCastUrl selectedHostnames) $ KeyNotFoundError "config url is missing from hostnames"
 
-getPeFile :: String -> String -> String -> IO I.ByteString
+getPeFile :: String -> String -> String -> WEIO I.ByteString
 getPeFile configHost platform env = do
   let peUrl = printf "GET %s/%s/sling/pe-%s.xml.enc" configHost platform env
   request peUrl
@@ -95,7 +94,7 @@ toExceptT m err = case m of
   Nothing  -> throwError err
   (Just x) -> return x
 
--- Other random testing that is unrelated
+-- TODO: Move this stuff somewhere else... Other random testing that is unrelated
 asciiToDecimal :: String -> Double
 asciiToDecimal s =
     let characters = "0123456789"
