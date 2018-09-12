@@ -3,6 +3,9 @@
 {-# LANGUAGE RecordWildCards   #-}
 module Main where
 
+import           Control.Exception             (Exception, IOException,
+                                                SomeException, evaluate,
+                                                ioError, throw, try)
 import           Control.Monad.Except          (runExceptT, throwError)
 import           Control.Monad.IO.Class        (liftIO)
 import           Control.Monad.Writer          (lift, runWriterT)
@@ -23,6 +26,7 @@ import           Data.Text                     as Text hiding (filter, foldl,
                                                         head, map, zipWith)
 import qualified Data.Text.Lazy.Encoding       as T
 import qualified Data.Text.Lazy.IO             as T
+import           Data.Typeable                 (Typeable)
 import           GHC.Exts
 import           Lib
 import           Text.Printf                   (printf)
@@ -41,16 +45,32 @@ appConfig = Config { rootUrl     = "https://webapp.movetv.com/npv/cfdir.json"
                    , platform    = "browser"
                    }
 
+data MyException = ThisException String | ThatException
+  deriving (Show, Typeable)
+
+instance Exception MyException
+
+bleh :: IO ()
+bleh = do
+  let test = try $ evaluate $ 5 `div` 0 :: IO (Either SomeException Int)
+  thing <- try $ runWriterT $ tracedRequest "GET http://test.com" :: IO (Either SomeException (I.ByteString, I.ByteString))
+  return ()
+
 main :: IO ()
 main = do
-  response <- runExceptT $ runWriterT $ bootstrap appConfig
-  case response of
-    Left (JsonParseError msg)   -> putStrLn msg
-    Left (KeyNotFoundError msg) -> putStrLn msg
-    Right r                     -> L8.putStrLn $ snd r
-  response2 <- runWriterT $ tBootstrap appConfig
+  -- bleh
+  -- response <- runExceptT $ runWriterT $ bootstrap appConfig
+  -- case response of
+  --   Left (JsonParseError msg)   -> putStrLn msg
+  --   Left (KeyNotFoundError msg) -> putStrLn msg
+  --   Right r                     -> L8.putStrLn $ snd r
+  val <- gEnvironments $ rootUrl appConfig
+  print val
+  response2 <- try $ runWriterT $ tBootstrap appConfig
   -- TODO: Handle exeptions, writer doesn't happen when exceptions occur here
-  L8.putStrLn $ snd response2
+  case response2 of
+    Left x  -> print (x :: MyException) -- TODO: This ignores all other exception types
+    Right r -> L8.putStrLn $ snd r
 
 tBootstrap :: Config -> WIO I.ByteString
 tBootstrap config = do
@@ -61,6 +81,7 @@ tBootstrap config = do
   hostnamesByEnvironment <- tGetHostnames (T.configHost selectedEnv) targetPlatform
   selectedHostnames <- lift $ tSelectHostnames hostnamesByEnvironment targetEnvironment
   configHostname <- lift $ tGetConfigHost selectedHostnames
+  throw $ ThisException "Error happened!"
   peXml <- tGetPeFile configHostname targetPlatform targetEnvironment
   return $ parsePeFile peXml
 
@@ -84,6 +105,9 @@ tGetEnvironments rootUrl = tracedJsonRequest $ printf "GET %s" rootUrl
 
 getEnvironments :: String -> WEIO T.Environments
 getEnvironments rootUrl = jsonRequest $ printf "GET %s" rootUrl
+
+gEnvironments :: String -> IO T.Environments
+gEnvironments rootUrl = jreq $ printf "GET %s" rootUrl
 
 tSelectEnvironment :: T.Environments -> String -> IO T.Environment
 tSelectEnvironment environments env = do

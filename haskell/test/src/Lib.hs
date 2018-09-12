@@ -3,6 +3,8 @@ module Lib
     , request
     , tracedRequest
     , tracedJsonRequest
+    , jreq
+    , req
     , Url
     , EIO
     , WEIO
@@ -12,9 +14,10 @@ module Lib
 import           Control.Monad              ((<=<))
 import           Control.Monad.Except       (ExceptT, throwError)
 import           Control.Monad.IO.Class     (liftIO)
-import           Control.Monad.Writer       (WriterT, tell)
+import           Control.Monad.Writer       (WriterT, lift, tell)
 import           Data.Aeson                 (FromJSON, eitherDecode)
-import qualified Data.ByteString.Lazy.Char8 as L8 (ByteString, pack)
+import qualified Data.ByteString.Lazy.Char8 as L8 (ByteString, pack, unpack)
+import           Debug.Trace                (traceIO)
 import           Network.HTTP.Simple        (Request, Response, getResponseBody,
                                              httpLBS, parseRequest)
 import           Types.Exceptions           (Error (JsonParseError))
@@ -52,4 +55,18 @@ tracedRequest url = do
   tell (L8.pack (url ++ "\n"))
   response <- fmap getResponseBody (httpLBS <=< parseRequest $url)
   tell response
+  return response
+
+jreq :: (FromJSON a) => Url -> IO a
+jreq url = do
+  response <- req url
+  case eitherDecode response of
+    (Left err) -> fail err
+    (Right a)  -> return a
+
+req :: Url -> IO L8.ByteString
+req url = do
+  traceIO url
+  response <- fmap getResponseBody (httpLBS <=< parseRequest $ url)
+  traceIO $ L8.unpack response
   return response
