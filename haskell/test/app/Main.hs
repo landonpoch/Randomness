@@ -6,6 +6,7 @@ module Main where
 import           Control.Exception             (Exception, IOException,
                                                 SomeException, evaluate,
                                                 ioError, throw, try)
+import qualified Control.Exception             as EX
 import           Control.Monad.Except          (runExceptT, throwError)
 import           Control.Monad.IO.Class        (liftIO)
 import           Control.Monad.Writer          (lift, runWriterT)
@@ -27,6 +28,7 @@ import           Data.Text                     as Text hiding (filter, foldl,
 import qualified Data.Text.Lazy.Encoding       as T
 import qualified Data.Text.Lazy.IO             as T
 import           Data.Typeable                 (Typeable)
+import           Debug.Trace                   (traceIO)
 import           GHC.Exts
 import           Lib
 import           Text.Printf                   (printf)
@@ -64,13 +66,18 @@ main = do
   --   Left (JsonParseError msg)   -> putStrLn msg
   --   Left (KeyNotFoundError msg) -> putStrLn msg
   --   Right r                     -> L8.putStrLn $ snd r
-  val <- gEnvironments $ rootUrl appConfig
-  print val
-  response2 <- try $ runWriterT $ tBootstrap appConfig
-  -- TODO: Handle exeptions, writer doesn't happen when exceptions occur here
-  case response2 of
-    Left x  -> print (x :: MyException) -- TODO: This ignores all other exception types
-    Right r -> L8.putStrLn $ snd r
+  val <- try $ try $ gEnvironments $ rootUrl appConfig
+  case val of
+    Left x -> do
+      traceIO "err"
+      print (x :: MyException)
+    Right r -> do
+      traceIO "no MyException"
+      case r of
+        Left rx  -> do
+          traceIO "MyHttpException occurred"
+          print (rx :: Lib.MyHttpException)
+        Right rr -> print rr
 
 tBootstrap :: Config -> WIO I.ByteString
 tBootstrap config = do

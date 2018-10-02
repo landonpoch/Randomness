@@ -9,17 +9,22 @@ module Lib
     , EIO
     , WEIO
     , WIO
+    , MyHttpException
     ) where
 
+import           Control.Exception          (Exception, throw)
 import           Control.Monad              ((<=<))
 import           Control.Monad.Except       (ExceptT, throwError)
 import           Control.Monad.IO.Class     (liftIO)
 import           Control.Monad.Writer       (WriterT, lift, tell)
 import           Data.Aeson                 (FromJSON, eitherDecode)
 import qualified Data.ByteString.Lazy.Char8 as L8 (ByteString, pack, unpack)
+import           Data.Typeable              (Typeable)
 import           Debug.Trace                (traceIO)
+import           Network.HTTP.Client        (responseStatus)
 import           Network.HTTP.Simple        (Request, Response, getResponseBody,
                                              httpLBS, parseRequest)
+import           Network.HTTP.Types.Status  (statusCode)
 import           Types.Exceptions           (Error (JsonParseError))
 
 type Url = String
@@ -64,9 +69,19 @@ jreq url = do
     (Left err) -> fail err
     (Right a)  -> return a
 
+data MyHttpException = HttpBadStatusCode Int | HttpUnknownException
+  deriving (Show, Typeable)
+instance Exception MyHttpException
+
 req :: Url -> IO L8.ByteString
 req url = do
   traceIO url
-  response <- fmap getResponseBody (httpLBS <=< parseRequest $ url)
-  traceIO $ L8.unpack response
-  return response
+  throw $ HttpBadStatusCode 500
+  response <- httpLBS <=< parseRequest $ url
+  let status = statusCode $ responseStatus response
+  if status == 200 then do
+    let responseBody = getResponseBody response
+    traceIO $ L8.unpack responseBody
+    return responseBody
+  else
+    throw $ HttpBadStatusCode status
