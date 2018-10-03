@@ -1,15 +1,13 @@
 module Types.Exceptions
-  ( Error(..)
-  , MyHttpException(..)
+  ( CustomException(..)
   ) where
 
 import           Control.Exception (Exception)
 import           Data.Typeable     (Typeable)
 
-type ErrorMsg = String
-data Error = JsonParseError ErrorMsg
-           | KeyNotFoundError ErrorMsg deriving (Show)
+data CustomException = JsonParseError String
+  | KeyNotFoundError String
+  | HttpBadStatusCode Int
+  deriving (Show, Typeable)
 
-data MyHttpException = HttpBadStatusCode Int | HttpUnknownException
- deriving (Show, Typeable)
-instance Exception MyHttpException
+instance Exception CustomException

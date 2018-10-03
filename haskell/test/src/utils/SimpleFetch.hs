@@ -3,25 +3,25 @@ module Utils.SimpleFetch
   , request
   ) where
 
-import           Control.Exception          (Exception, throw)
+import           Control.Exception          (throw)
 import           Control.Monad              ((<=<))
 import           Data.Aeson                 (FromJSON, eitherDecode)
-import qualified Data.ByteString.Lazy.Char8 as L8 (ByteString, pack, unpack)
-import           Data.Typeable              (Typeable)
+import qualified Data.ByteString.Lazy.Char8 as L8 (ByteString, unpack)
 import           Debug.Trace                (traceIO)
 import           Network.HTTP.Client        (responseStatus)
 import           Network.HTTP.Simple        (getResponseBody, httpLBS,
                                              parseRequest)
 import           Network.HTTP.Types.Status  (statusCode)
-import           Types.Exceptions           (MyHttpException (HttpBadStatusCode))
+import           Types.Exceptions           (CustomException (HttpBadStatusCode, JsonParseError))
 
 type Url = String
 
+-- TODO: Can probably make jsonRequest and request completely generic
 jsonRequest :: (FromJSON a) => Url -> IO a
 jsonRequest url = do
   response <- request url
   case eitherDecode response of
-    (Left err) -> fail err
+    (Left err) -> throw $ JsonParseError err
     (Right a)  -> return a
 
 request :: Url -> IO L8.ByteString

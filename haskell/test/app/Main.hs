@@ -9,7 +9,7 @@ import           Control.Monad.Writer       (runWriterT)
 import qualified Data.ByteString.Lazy.Char8 as L8 (putStrLn)
 import           Types.Config               (Config (Config), environment,
                                              platform, rootUrl)
-import           Types.Exceptions           (Error)
+import           Types.Exceptions           (CustomException)
 
 appConfig = Config { rootUrl     = "https://webapp.movetv.com/npv/cfdir.json"
                    , environment = "beta"
@@ -45,7 +45,7 @@ tracedErr = do
   case result of
     Left x  -> do
       putStrLn "error:"
-      print (x :: Error)
+      print (x :: CustomException)
     Right x -> do
       putStrLn "result:"
       L8.putStrLn x

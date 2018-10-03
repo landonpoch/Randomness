@@ -11,11 +11,11 @@ import           Data.Aeson                 (FromJSON, eitherDecode)
 import qualified Data.ByteString.Lazy.Char8 as L8 (ByteString, pack)
 import           Network.HTTP.Simple        (getResponseBody, httpLBS,
                                              parseRequest)
-import           Types.Exceptions           (Error (JsonParseError))
+import           Types.Exceptions           (CustomException (JsonParseError))
 import qualified Utils.TracedFetch          as TR (WIO, request)
 
 type Url = String
-type EWIO = ExceptT Error TR.WIO
+type EWIO = ExceptT CustomException TR.WIO
 
 jsonRequest :: (FromJSON a) => Url -> EWIO a
 jsonRequest url = do
@@ -27,4 +27,4 @@ jsonRequest url = do
        (Right a)  -> return a
 
 request :: Url -> EWIO L8.ByteString
-request url = lift $ TR.request url
+request url = lift $ TR.request url -- TODO: Catch IO exceptions and convert?

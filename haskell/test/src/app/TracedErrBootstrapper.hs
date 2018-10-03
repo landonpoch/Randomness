@@ -11,7 +11,7 @@ import           Text.Printf                   (printf)
 import           Types.Config                  (Config, environment, platform,
                                                 rootUrl)
 import qualified Types.Environments            as T
-import           Types.Exceptions              (Error (JsonParseError, KeyNotFoundError))
+import           Types.Exceptions              (CustomException (JsonParseError, KeyNotFoundError))
 import qualified Types.Hostnames               as TH
 import           Utils.TracedErrFetch          (EWIO, jsonRequest, request)
 
@@ -59,7 +59,7 @@ getPeFile configHost platform env = do
 parsePeFile :: I.ByteString -> I.ByteString
 parsePeFile = id -- TODO: parse the xml file and return a new ADT
 
-toExceptT :: Maybe a -> Error -> EWIO a
+toExceptT :: Maybe a -> CustomException -> EWIO a
 toExceptT m err = case m of
   Nothing  -> throwError err
   (Just x) -> return x
