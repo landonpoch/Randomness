@@ -1,27 +1,30 @@
 module Utils.TracedFetch
   ( WIO
+  , jsonRequest
+  , request
   ) where
 
 import           Control.Monad              ((<=<))
-import           Control.Monad.Writer       (WriterT, tell)
+import           Control.Monad.Writer       (WriterT, lift, tell)
 import           Data.Aeson                 (FromJSON, eitherDecode)
 import qualified Data.ByteString.Lazy.Char8 as L8 (ByteString, pack)
 import           Network.HTTP.Simple        (getResponseBody, httpLBS,
                                              parseRequest)
+import qualified Utils.SimpleFetch          as SR (request)
 
 type Url = String
 type WIO = WriterT L8.ByteString IO
 
-tracedJsonRequest :: (FromJSON a) => Url -> WIO a
-tracedJsonRequest url = do
-  response <- tracedRequest url
+jsonRequest :: (FromJSON a) => Url -> WIO a
+jsonRequest url = do
+  response <- request url
   case eitherDecode response of
     (Left err) -> fail err
     (Right a)  -> return a
 
-tracedRequest :: Url -> WIO L8.ByteString
-tracedRequest url = do
+request :: Url -> WIO L8.ByteString
+request url = do
   tell (L8.pack (url ++ "\n"))
-  response <- fmap getResponseBody (httpLBS <=< parseRequest $ url)
+  response <- lift $ SR.request url
   tell response
   return response

@@ -1,5 +1,6 @@
 module Utils.SimpleFetch
-  (
+  ( jsonRequest
+  , request
   ) where
 
 import           Control.Exception          (Exception, throw)
@@ -12,23 +13,20 @@ import           Network.HTTP.Client        (responseStatus)
 import           Network.HTTP.Simple        (getResponseBody, httpLBS,
                                              parseRequest)
 import           Network.HTTP.Types.Status  (statusCode)
+import           Types.Exceptions           (MyHttpException (HttpBadStatusCode))
 
 type Url = String
-data MyHttpException = HttpBadStatusCode Int | HttpUnknownException
-  deriving (Show, Typeable)
-instance Exception MyHttpException
 
-jreq :: (FromJSON a) => Url -> IO a
-jreq url = do
-  response <- req url
+jsonRequest :: (FromJSON a) => Url -> IO a
+jsonRequest url = do
+  response <- request url
   case eitherDecode response of
     (Left err) -> fail err
     (Right a)  -> return a
 
-req :: Url -> IO L8.ByteString
-req url = do
+request :: Url -> IO L8.ByteString
+request url = do
   traceIO url
-  throw $ HttpBadStatusCode 500
   response <- httpLBS <=< parseRequest $ url
   let status = statusCode $ responseStatus response
   if status == 200 then do
