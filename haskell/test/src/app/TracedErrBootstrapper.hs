@@ -36,7 +36,7 @@ getEnvironments rootUrl = jsonRequest $ printf "GET %s" rootUrl
 selectEnvironment :: T.Environments -> String -> EWIO T.Environment
 selectEnvironment environments env = do
   let maybeEnvironment = HMS.lookup env $ T.environments environments
-  toExceptT maybeEnvironment $ KeyNotFoundError "target environment doesn't exist"
+  toExceptT maybeEnvironment "target environment doesn't exist"
 
 getHostnames :: String -> String -> EWIO TH.HostnameEnvironments
 getHostnames configHostname platform = do
@@ -46,10 +46,12 @@ getHostnames configHostname platform = do
 selectHostnames :: TH.HostnameEnvironments -> String -> EWIO TH.Hostnames
 selectHostnames hostnamesByEnvironment env = do
   let maybeHostnames = HMS.lookup env $ TH.environments hostnamesByEnvironment
-  toExceptT maybeHostnames $ KeyNotFoundError "environment missing hostnames"
+  toExceptT maybeHostnames "environment missing hostnames"
 
 getConfigHost :: TH.Hostnames -> EWIO String
-getConfigHost selectedHostnames = toExceptT (TH.appCastUrl selectedHostnames) $ KeyNotFoundError "config url is missing from hostnames"
+getConfigHost selectedHostnames = do
+  let maybeHostnames = TH.appCastUrl selectedHostnames
+  toExceptT maybeHostnames "config url is missing from hostnames"
 
 getPeFile :: String -> String -> String -> EWIO I.ByteString
 getPeFile configHost platform env = do
@@ -59,7 +61,7 @@ getPeFile configHost platform env = do
 parsePeFile :: I.ByteString -> I.ByteString
 parsePeFile = id -- TODO: parse the xml file and return a new ADT
 
-toExceptT :: Maybe a -> CustomException -> EWIO a
-toExceptT m err = case m of
-  Nothing  -> throwError err
+toExceptT :: Maybe a -> String -> EWIO a
+toExceptT m msg = case m of
+  Nothing  -> throwError $ KeyNotFoundError msg
   (Just x) -> return x

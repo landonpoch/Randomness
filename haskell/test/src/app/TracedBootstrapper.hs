@@ -41,9 +41,7 @@ getEnvironments rootUrl = TF.jsonRequest $ printf "GET %s" rootUrl
 selectEnvironment :: T.Environments -> String -> IO T.Environment
 selectEnvironment environments env = do
   let maybeEnvironment = HMS.lookup env $ T.environments environments
-  case maybeEnvironment of
-    Nothing  -> throw $ KeyNotFoundError "target environment doesn't exist"
-    (Just x) -> return x
+  convertMaybe maybeEnvironment "target environment doesn't exist"
 
 getHostnames :: String -> String -> TF.WIO TH.HostnameEnvironments
 getHostnames configHostname platform = do
@@ -53,17 +51,19 @@ getHostnames configHostname platform = do
 selectHostnames :: TH.HostnameEnvironments -> String -> IO TH.Hostnames
 selectHostnames hostnamesByEnvironment env = do
   let maybeHostnames = HMS.lookup env $ TH.environments hostnamesByEnvironment
-  case maybeHostnames of
-    Nothing  -> throw $ KeyNotFoundError "environment missing hostnames"
-    (Just x) -> return x
+  convertMaybe maybeHostnames "environment missing hostnames"
 
 getConfigHost :: TH.Hostnames -> IO String
-getConfigHost selectedHostnames =
-  case TH.appCastUrl selectedHostnames of
-    Nothing  -> throw $ KeyNotFoundError "config url is missing from hostnames"
-    (Just x) -> return x
+getConfigHost selectedHostnames = do
+  let maybeConfigUrl = TH.appCastUrl selectedHostnames
+  convertMaybe maybeConfigUrl "config url is missing from hostnames"
 
 getPeFile :: String -> String -> String -> TF.WIO I.ByteString
 getPeFile configHost platform env = do
   let peUrl = printf "GET %s/%s/sling/pe-%s.xml.enc" configHost platform env
   TF.request peUrl
+
+convertMaybe :: Maybe a -> String -> IO a
+convertMaybe val msg = case val of
+  Nothing  -> throw $ KeyNotFoundError msg
+  (Just x) -> return x
