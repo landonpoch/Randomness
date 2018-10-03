@@ -7,6 +7,7 @@ import           Control.Exception          (SomeException, try)
 import           Control.Monad.Except       (runExceptT)
 import           Control.Monad.Writer       (runWriterT)
 import qualified Data.ByteString.Lazy.Char8 as L8 (putStrLn)
+import           Random.Stuff               (asciiToDecimal, jsonTest)
 import           Types.Config               (Config (Config), environment,
                                              platform, rootUrl)
 import           Types.Exceptions           (CustomException (..))
@@ -88,3 +89,5 @@ main = do
   --         traceIO "MyHttpException occurred"
   --         print (rx :: MyHttpException)
   --       Right rr -> print rr
+  jsonTest
+  print $ asciiToDecimal "-54.234"
