@@ -1,5 +1,6 @@
 module Main where
 
+import           App.SimpleBootstrapper     (bootstrap)
 import qualified App.TracedBootstrapper     as T (bootstrap)
 import qualified App.TracedErrBootstrapper  as TE (bootstrap)
 import           Control.Exception          (try)
@@ -14,6 +15,13 @@ appConfig = Config { rootUrl     = "https://webapp.movetv.com/npv/cfdir.json"
                    , environment = "beta"
                    , platform    = "browser"
                    }
+simple :: IO ()
+simple = do
+  stuff <- bootstrap appConfig
+  putStrLn "~~~~~~~~~~~~~~~~~~~~~~"
+  putStrLn "result:"
+  L8.putStrLn stuff
+  putStrLn "~~~~~~~~~~~~~~~~~~~~~~"
 
 traced :: IO ()
 traced = do
@@ -49,6 +57,8 @@ tracedErr = do
 
 main :: IO ()
 main = do
+  putStrLn "##################################################################"
+  simple
   putStrLn "##################################################################"
   traced
   putStrLn "##################################################################"
