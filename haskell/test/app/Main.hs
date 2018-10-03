@@ -3,13 +3,13 @@ module Main where
 import           App.SimpleBootstrapper     (bootstrap)
 import qualified App.TracedBootstrapper     as T (bootstrap)
 import qualified App.TracedErrBootstrapper  as TE (bootstrap)
-import           Control.Exception          (try)
+import           Control.Exception          (SomeException, try)
 import           Control.Monad.Except       (runExceptT)
 import           Control.Monad.Writer       (runWriterT)
 import qualified Data.ByteString.Lazy.Char8 as L8 (putStrLn)
 import           Types.Config               (Config (Config), environment,
                                              platform, rootUrl)
-import           Types.Exceptions           (CustomException)
+import           Types.Exceptions           (CustomException (..))
 
 appConfig = Config { rootUrl     = "https://webapp.movetv.com/npv/cfdir.json"
                    , environment = "beta"
@@ -17,11 +17,19 @@ appConfig = Config { rootUrl     = "https://webapp.movetv.com/npv/cfdir.json"
                    }
 simple :: IO ()
 simple = do
-  stuff <- bootstrap appConfig
-  putStrLn "~~~~~~~~~~~~~~~~~~~~~~"
-  putStrLn "result:"
-  L8.putStrLn stuff
-  putStrLn "~~~~~~~~~~~~~~~~~~~~~~"
+  result <- try $ bootstrap appConfig
+  case result of
+    Left ex ->
+      case (ex :: CustomException) of
+        -- TODO: Could just print the exception but breaking this out to see how
+        KeyNotFoundError msg   -> print ex
+        JsonParseError msg     -> print ex
+        HttpBadStatusCode code -> print ex
+    Right r -> do
+      putStrLn "~~~~~~~~~~~~~~~~~~~~~~"
+      putStrLn "result:"
+      L8.putStrLn r
+      putStrLn "~~~~~~~~~~~~~~~~~~~~~~"
 
 traced :: IO ()
 traced = do
@@ -58,7 +66,11 @@ tracedErr = do
 main :: IO ()
 main = do
   putStrLn "##################################################################"
-  simple
+  -- TODO: Probably better as a catch where we can put the entire IO action into it
+  result <- try simple
+  case result of
+    Left x  -> print (x :: SomeException)
+    Right x -> return x
   putStrLn "##################################################################"
   traced
   putStrLn "##################################################################"

@@ -2,12 +2,14 @@ module App.SimpleBootstrapper
   ( bootstrap
   ) where
 
+import           Control.Exception             (throw)
 import qualified Data.ByteString.Lazy.Internal as I
 import qualified Data.HashMap.Strict           as HMS (lookup)
 import           Text.Printf                   (printf)
 import           Types.Config                  (Config (Config), environment,
                                                 platform, rootUrl)
 import qualified Types.Environments            as T
+import           Types.Exceptions              (CustomException (KeyNotFoundError))
 import qualified Types.Hostnames               as TH
 import qualified Utils.SimpleFetch             as SF (jsonRequest, request)
 
@@ -28,11 +30,12 @@ bootstrap config = do
 getEnvironments :: String -> IO T.Environments
 getEnvironments rootUrl = SF.jsonRequest $ printf "GET %s" rootUrl
 
+-- TODO: Remove boilderplate key lookup stuff
 selectEnvironment :: T.Environments -> String -> IO T.Environment
 selectEnvironment environments env = do
   let maybeEnvironment = HMS.lookup env $ T.environments environments
   case maybeEnvironment of
-    Nothing  -> fail "target environment doesn't exist"
+    Nothing  -> throw $ KeyNotFoundError "target environment doesn't exist"
     (Just x) -> return x
 
 getHostnames :: String -> String -> IO TH.HostnameEnvironments
@@ -44,13 +47,13 @@ selectHostnames :: TH.HostnameEnvironments -> String -> IO TH.Hostnames
 selectHostnames hostnamesByEnvironment env = do
   let maybeHostnames = HMS.lookup env $ TH.environments hostnamesByEnvironment
   case maybeHostnames of
-    Nothing  -> fail "environment missing hostnames"
+    Nothing  -> throw $ KeyNotFoundError "environment missing hostnames"
     (Just x) -> return x
 
 getConfigHost :: TH.Hostnames -> IO String
 getConfigHost selectedHostnames =
   case TH.appCastUrl selectedHostnames of
-    Nothing  -> fail "config url is missing from hostnames"
+    Nothing  -> throw $ KeyNotFoundError "config url is missing from hostnames"
     (Just x) -> return x
 
 getPeFile :: String -> String -> String -> IO I.ByteString

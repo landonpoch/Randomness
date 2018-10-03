@@ -12,6 +12,7 @@ import           Text.Printf                   (printf)
 import           Types.Config                  (Config (Config), environment,
                                                 platform, rootUrl)
 import qualified Types.Environments            as T
+import           Types.Exceptions              (CustomException (KeyNotFoundError))
 import qualified Types.Hostnames               as TH
 import qualified Utils.TracedFetch             as TF (WIO, jsonRequest, request)
 
@@ -41,7 +42,7 @@ selectEnvironment :: T.Environments -> String -> IO T.Environment
 selectEnvironment environments env = do
   let maybeEnvironment = HMS.lookup env $ T.environments environments
   case maybeEnvironment of
-    Nothing  -> fail "target environment doesn't exist"
+    Nothing  -> throw $ KeyNotFoundError "target environment doesn't exist"
     (Just x) -> return x
 
 getHostnames :: String -> String -> TF.WIO TH.HostnameEnvironments
@@ -53,13 +54,13 @@ selectHostnames :: TH.HostnameEnvironments -> String -> IO TH.Hostnames
 selectHostnames hostnamesByEnvironment env = do
   let maybeHostnames = HMS.lookup env $ TH.environments hostnamesByEnvironment
   case maybeHostnames of
-    Nothing  -> fail "environment missing hostnames"
+    Nothing  -> throw $ KeyNotFoundError "environment missing hostnames"
     (Just x) -> return x
 
 getConfigHost :: TH.Hostnames -> IO String
 getConfigHost selectedHostnames =
   case TH.appCastUrl selectedHostnames of
-    Nothing  -> fail "config url is missing from hostnames"
+    Nothing  -> throw $ KeyNotFoundError "config url is missing from hostnames"
     (Just x) -> return x
 
 getPeFile :: String -> String -> String -> TF.WIO I.ByteString
