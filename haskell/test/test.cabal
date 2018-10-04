@@ -25,6 +25,7 @@ library
                      , Types.Environments
                      , Types.Hostnames
                      , Types.Exceptions
+                     , Types.Global
                      , Random.Stuff
   build-depends:       base >= 4.7 && < 5
                      , http-client
@@ -38,6 +39,7 @@ library
                      , unordered-containers
                      , mtl
                      , either
+                     , exceptions
                      , transformers
                      , scientific
   default-language:    Haskell2010

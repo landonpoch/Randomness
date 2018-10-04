@@ -18,8 +18,8 @@ appConfig = Config { rootUrl     = "https://webapp.movetv.com/npv/cfdir.json"
                    }
 simple :: IO ()
 simple = do
-  result <- try $ bootstrap appConfig
-  case result of
+  output <- try $ bootstrap appConfig
+  case output of
     Left ex ->
       case (ex :: CustomException) of
         -- TODO: Could just print the exception but breaking this out to see how
@@ -34,9 +34,9 @@ simple = do
 
 traced :: IO ()
 traced = do
-  stuff <- runWriterT $ T.bootstrap appConfig
-  let result = fst stuff
-  let writer = snd stuff
+  output <- runWriterT $ T.bootstrap appConfig
+  let result = fst output
+  let writer = snd output
   putStrLn "~~~~~~~~~~~~~~~~~~~~~~"
   putStrLn "result:"
   L8.putStrLn result
@@ -47,9 +47,9 @@ traced = do
 
 tracedErr :: IO ()
 tracedErr = do
-  stuff <- runWriterT $ runExceptT $ TE.bootstrap appConfig
-  let result = fst stuff
-  let writer = snd stuff
+  output <- runWriterT $ runExceptT $ TE.bootstrap appConfig
+  let result = fst output
+  let writer = snd output
   putStrLn "~~~~~~~~~~~~~~~~~~~~~~"
   case result of
     Left x  -> do

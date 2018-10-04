@@ -12,9 +12,12 @@ import           Types.Config                  (Config, environment, platform,
                                                 rootUrl)
 import qualified Types.Environments            as T
 import           Types.Exceptions              (CustomException (JsonParseError, KeyNotFoundError))
+import           Types.Global                  (EWIO)
 import qualified Types.Hostnames               as TH
-import           Utils.TracedErrFetch          (EWIO, jsonRequest, request)
+import           Utils.TracedErrFetch          (jsonRequest, request)
 
+-- TODO: Maybe these should also use typeclasses and the transformers should
+-- only be referenced in the initial call in from main?
 -- TODO: Take a look at IO Exceptions instead of ExceptT as an alternative
 -- see: https://softwareengineering.stackexchange.com/questions/252977/cleanest-way-to-report-errors-in-haskell
 -- see: https://www.schoolofhaskell.com/user/commercial/content/exceptions-best-practices
