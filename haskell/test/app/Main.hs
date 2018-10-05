@@ -8,8 +8,7 @@ import           Control.Monad.Except       (runExceptT)
 import           Control.Monad.Writer       (runWriterT)
 import qualified Data.ByteString.Lazy.Char8 as L8 (putStrLn)
 import           Random.Stuff               (asciiToDecimal, jsonTest)
-import           Types.Config               (Config (Config), environment,
-                                             platform, rootUrl)
+import           Types.Config               (Config (..))
 import           Types.Exceptions           (CustomException (..))
 
 appConfig = Config { rootUrl     = "https://webapp.movetv.com/npv/cfdir.json"

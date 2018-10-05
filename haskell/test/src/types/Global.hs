@@ -40,7 +40,6 @@ class (MonadWriter L8.ByteString m, MonadThrowHttp m) => MonadWriteThrowHttp m
 instance MonadWriteThrowHttp WIO
 
 type EWIO = ExceptT CustomException WIO
-
 instance MonadHttp EWIO where
   makeRequest = httpLBS
 instance MonadThrowHttp EWIO
