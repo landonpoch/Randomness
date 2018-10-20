@@ -3,10 +3,10 @@ module Main where
 import           App.SimpleBootstrapper     (bootstrap)
 import qualified App.TracedBootstrapper     as T (bootstrap)
 import qualified App.TracedErrBootstrapper  as TE (bootstrap)
-import           Control.Exception          (SomeException, try)
+import           Control.Exception          (SomeException, catch, try)
 import           Control.Monad.Except       (runExceptT)
 import           Control.Monad.Writer       (runWriterT)
-import qualified Data.ByteString.Lazy.Char8 as L8 (putStrLn)
+import qualified Data.ByteString.Lazy.Char8 as L8 (ByteString, putStrLn)
 import           Random.Stuff               (asciiToDecimal, jsonTest)
 import           Types.Config               (Config (..))
 import           Types.Exceptions           (CustomException (..))
@@ -15,78 +15,65 @@ appConfig = Config { rootUrl     = "https://webapp.movetv.com/npv/cfdir.json"
                    , environment = "beta"
                    , platform    = "browser"
                    }
+
+main :: IO ()
+main = catch
+  (do
+    putStrLn "###############################################################"
+    simple
+    putStrLn "###############################################################"
+    traced
+    putStrLn "###############################################################"
+    tracedErr
+    putStrLn "###############################################################"
+    jsonTest
+    print $ asciiToDecimal "-54.234"
+  )
+  (\e -> print (e :: SomeException))
+
 simple :: IO ()
 simple = do
   output <- try $ bootstrap appConfig
   case output of
-    Left ex ->
-      case (ex :: CustomException) of
-        -- TODO: Could just print the exception but breaking this out to see how
-        KeyNotFoundError msg   -> print ex
-        JsonParseError msg     -> print ex
-        HttpBadStatusCode code -> print ex
-    Right r -> do
-      putStrLn "~~~~~~~~~~~~~~~~~~~~~~"
-      putStrLn "result:"
-      L8.putStrLn r
-      putStrLn "~~~~~~~~~~~~~~~~~~~~~~"
+    Left ex -> writeException ex
+    Right r -> writeResult r
 
 traced :: IO ()
 traced = do
-  output <- runWriterT $ T.bootstrap appConfig
-  let result = fst output
-  let writer = snd output
-  putStrLn "~~~~~~~~~~~~~~~~~~~~~~"
-  putStrLn "result:"
-  L8.putStrLn result
-  putStrLn "~~~~~~~~~~~~~~~~~~~~~~"
-  putStrLn "writer:"
-  L8.putStrLn writer
-  putStrLn "~~~~~~~~~~~~~~~~~~~~~~"
+  output <- try $ runWriterT $ T.bootstrap appConfig
+  case output of
+    Left ex -> writeException ex
+    Right (result, writer) -> do
+      writeResult result
+      writeWriter writer
 
 tracedErr :: IO ()
 tracedErr = do
-  output <- runWriterT $ runExceptT $ TE.bootstrap appConfig
-  let result = fst output
-  let writer = snd output
-  putStrLn "~~~~~~~~~~~~~~~~~~~~~~"
+  (result, writer) <- runWriterT $ runExceptT $ TE.bootstrap appConfig
   case result of
-    Left x  -> do
-      putStrLn "error:"
-      print (x :: CustomException)
-    Right x -> do
-      putStrLn "result:"
-      L8.putStrLn x
-  putStrLn "~~~~~~~~~~~~~~~~~~~~~~"
-  putStrLn "writer:"
-  L8.putStrLn writer
-  putStrLn "~~~~~~~~~~~~~~~~~~~~~~"
+    Left x  -> writeException x
+    Right x -> writeResult x
+  writeWriter writer
 
+writeResult :: L8.ByteString -> IO()
+writeResult result = writeItem "result" $ L8.putStrLn result
 
-main :: IO ()
-main = do
-  putStrLn "##################################################################"
-  -- TODO: Probably better as a catch where we can put the entire IO action into it
-  result <- try simple
-  case result of
-    Left x  -> print (x :: SomeException)
-    Right x -> return x
-  putStrLn "##################################################################"
-  traced
-  putStrLn "##################################################################"
-  tracedErr
-  putStrLn "##################################################################"
-  -- val <- try $ try $ gEnvironments $ rootUrl appConfig
-  -- case val of
-  --   Left x -> do
-  --     traceIO "err"
-  --     print (x :: MyException)
-  --   Right r -> do
-  --     traceIO "no MyException"
-  --     case r of
-  --       Left rx  -> do
-  --         traceIO "MyHttpException occurred"
-  --         print (rx :: MyHttpException)
-  --       Right rr -> print rr
-  jsonTest
-  print $ asciiToDecimal "-54.234"
+writeWriter :: L8.ByteString -> IO()
+writeWriter writer = writeItem "writer" $ L8.putStrLn writer
+
+-- TODO: Could just print the exception but breaking this out to see how
+writeException :: CustomException -> IO()
+writeException ex =
+  writeItem "error" $
+    case (ex :: CustomException) of
+      KeyNotFoundError msg   -> print ex
+      JsonParseError msg     -> print ex
+      HttpBadStatusCode code -> print ex
+
+writeItem :: String -> IO() -> IO()
+writeItem item write = do
+  putStrLn "~~~~~~~~~~~~~~~~~~~~~~"
+  putStrLn $ item ++ ":"
+  write
+  putStrLn "~~~~~~~~~~~~~~~~~~~~~~"
+  putStrLn ""

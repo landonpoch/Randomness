@@ -12,7 +12,8 @@ import           Network.HTTP.Client        (responseStatus)
 import           Network.HTTP.Simple        (getResponseBody, parseRequest)
 import           Network.HTTP.Types.Status  (statusCode)
 import           Types.Exceptions           (CustomException (..))
-import           Types.Global               (MonadThrowHttp, Url, makeRequest)
+import           Types.Global               (MonadHttp, MonadThrowHttp, Url,
+                                             makeRequest)
 
 -- TODO: Can probably make jsonRequest and request completely generic
 -- for all 3 stacks
