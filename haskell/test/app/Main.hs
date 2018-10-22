@@ -1,9 +1,12 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Main where
 
 import           App.Bootstrapper           (bootstrap)
 import           Control.Exception          (SomeException, catch, try)
-import qualified Data.ByteString.Lazy.Char8 as L8 (ByteString, putStrLn)
-import           Random.Stuff               (asciiToDecimal, jsonTest)
+import qualified Data.ByteString.Lazy.Char8 as L8
+import qualified Data.Text.IO               as TIO
+-- import           Random.Stuff               (asciiToDecimal, jsonTest)
 import           Types.Config               (Config (..))
 import           Types.Exceptions           (CustomException (..))
 
@@ -17,10 +20,10 @@ main = catch
   (do
     output <- try $ bootstrap appConfig
 
-    putStrLn "~~~~~~~~~~~~~~~~~~~~~~"
+    TIO.putStrLn "~~~~~~~~~~~~~~~~~~~~~~"
     case output of
       Left ex -> do
-        putStrLn "Exception:"
+        TIO.putStrLn "Exception:"
         -- Could just print the exception but breaking this out simply to learn
         case (ex :: CustomException) of
           KeyNotFoundError msg   -> print ex
@@ -28,10 +31,10 @@ main = catch
           HttpBadStatusCode code -> print ex
           RandomException        -> print ex
       Right r -> do
-        putStrLn "Result:"
+        TIO.putStrLn "Result:"
         L8.putStrLn r
-    putStrLn "~~~~~~~~~~~~~~~~~~~~~~"
-    putStrLn ""
+    TIO.putStrLn "~~~~~~~~~~~~~~~~~~~~~~"
+    TIO.putStrLn ""
 
     -- putStrLn "#############################################################"
     -- jsonTest

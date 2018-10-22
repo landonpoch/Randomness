@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards   #-}
+
 module Types.Environments
     ( Environments(..)
     , Environment(..)
@@ -7,13 +8,14 @@ module Types.Environments
 
 import           Data.Aeson
 import           Data.HashMap.Strict (HashMap)
+import qualified Data.Text           as T
 
 data Environment = Environment
-    { configHost    :: !String
-    , configHostSsl :: Maybe String
+    { configHost    :: !T.Text
+    , configHostSsl :: Maybe T.Text
     } deriving Show
 
-data Environments = Environments { environments :: HashMap String Environment } deriving Show
+newtype Environments = Environments { environments :: HashMap T.Text Environment } deriving Show
 
 instance FromJSON Environment where
     parseJSON = withObject "environment" $ \o -> do

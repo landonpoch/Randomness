@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards   #-}
+
 module Types.Hostnames
     ( Hostnames(..)
     , HostnameEnvironments(..)
@@ -7,8 +8,9 @@ module Types.Hostnames
 
 import           Data.Aeson
 import           Data.HashMap.Strict (HashMap)
+import qualified Data.Text           as T
 
-newtype HostnameEnvironments = HostnameEnvironments { environments :: HashMap String Hostnames } deriving Show
+newtype HostnameEnvironments = HostnameEnvironments { environments :: HashMap T.Text Hostnames } deriving Show
 
 instance FromJSON HostnameEnvironments where
     parseJSON = withObject "hostnameEnvironments" $ \o -> do
@@ -23,26 +25,26 @@ instance ToJSON Hostnames where
   toJSON Hostnames{..} = object[
     "serviceId" .= serviceId ] -- TODO: Finish mapping if necessary
 
-data Hostnames = Hostnames { serviceId         :: !String
-                           , chromecastAppId   :: Maybe String
-                           , cmsUrl            :: !String
-                           , dmsUrl            :: !String
-                           , geoUrl            :: !String
-                           , timeUrl           :: !String
-                           , logUrl            :: !String
-                           , cmwUrl            :: !String
-                           , umsUrl            :: !String
-                           , microUmsUrl       :: !String
-                           , cmwNgUrl          :: Maybe String
-                           , extAuthUrl        :: !String
-                           , websiteUrl        :: !String
-                           , appCastUrl        :: Maybe String
-                           , launchUrl         :: Maybe String
-                           , upgradeUrl        :: Maybe String
-                           , statsUrl          :: !String
-                           , channelsUrl       :: !String
-                           , signUpLayoutUrl   :: !String
-                           , adobeHeartbeatUrl :: !String
+data Hostnames = Hostnames { serviceId         :: !T.Text
+                           , chromecastAppId   :: Maybe T.Text
+                           , cmsUrl            :: !T.Text
+                           , dmsUrl            :: !T.Text
+                           , geoUrl            :: !T.Text
+                           , timeUrl           :: !T.Text
+                           , logUrl            :: !T.Text
+                           , cmwUrl            :: !T.Text
+                           , umsUrl            :: !T.Text
+                           , microUmsUrl       :: !T.Text
+                           , cmwNgUrl          :: Maybe T.Text
+                           , extAuthUrl        :: !T.Text
+                           , websiteUrl        :: !T.Text
+                           , appCastUrl        :: Maybe T.Text
+                           , launchUrl         :: Maybe T.Text
+                           , upgradeUrl        :: Maybe T.Text
+                           , statsUrl          :: !T.Text
+                           , channelsUrl       :: !T.Text
+                           , signUpLayoutUrl   :: !T.Text
+                           , adobeHeartbeatUrl :: !T.Text
                            } deriving Show
 
 instance FromJSON Hostnames where
