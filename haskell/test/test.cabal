@@ -15,12 +15,8 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     App.TracedErrBootstrapper
-                     , App.TracedBootstrapper
-                     , App.SimpleBootstrapper
-                     , Utils.TracedFetch
-                     , Utils.TracedErrFetch
-                     , Utils.SimpleFetch
+  exposed-modules:     App.Bootstrapper
+                     , Utils.Fetch
                      , Types.Config
                      , Types.Environments
                      , Types.Hostnames
