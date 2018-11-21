@@ -3,31 +3,24 @@
 module App.Bootstrapper
   ( bootstrap
   ) where
-import           App.Decryption          (decryptPeFile, getPeKey)
-import           Control.Exception       (throw)
-import           Control.Monad.Catch     (MonadThrow)
-import           Crypto.Cipher.AES       (AES128)
-import           Crypto.Cipher.Types     (BlockCipher (..), Cipher (..), IV,
-                                          makeIV)
-import qualified Crypto.Random.Types     as CRT
-import           Data.ByteArray          (ByteArray)
-import qualified Data.ByteArray.Encoding as BAE
-import qualified Data.ByteString         as BS
-import qualified Data.ByteString.Base64  as B64
-import qualified Data.ByteString.Lazy    as BL
-import qualified Data.HashMap.Strict     as HM
-import qualified Data.Text               as T
-import qualified Data.Text.Encoding      as TE
-import qualified Data.Text.Lazy.Encoding as TLE
-import           Text.Printf             (printf)
-import           Types.Config            (Config (..), environment, platform,
-                                          rootUrl)
-import qualified Types.Environments      as T
-import           Types.Exceptions        (CustomException (..))
-import           Types.Global            (MonadFile, MonadHttp, MonadLogger,
-                                          trace)
-import qualified Types.Hostnames         as TH
-import           Utils.Fetch             (jsonRequest, request)
+
+import           Control.Exception    (throw)
+import           Control.Monad.Catch  (MonadThrow)
+import qualified Data.ByteString      as BS
+import qualified Data.ByteString.Lazy as BL
+import qualified Data.HashMap.Strict  as HM
+import           Data.Monoid          ((<>))
+import qualified Data.Text            as T
+import qualified Data.Text.Encoding   as TE
+import           Text.Printf          (printf)
+import           Types.Config         (Config (..), environment, platform,
+                                       rootUrl)
+import qualified Types.Environments   as T
+import           Types.Exceptions     (CustomException (..))
+import           Types.Global         (MonadFile, MonadHttp, MonadLogger, trace)
+import qualified Types.Hostnames      as TH
+import           Utils.Fetch          (jsonRequest, request)
+import           Utils.Pe             (decryptPeFile, getPeKey, getSecrets)
 
 bootstrap :: (MonadFile m, MonadHttp m, MonadThrow m, MonadLogger m)
   => Config -> m T.Text
@@ -43,8 +36,10 @@ bootstrap config = do
   -- throw RandomException
   peFile <- getPeFile configHostname targetPlatform targetEnvironment
   -- TODO: Parse PE file
-  val <- getConsumerKeyAndSecret peFile
-  return $ fst val
+  (consumerKey, consumerSecret) <- getConsumerKeyAndSecret peFile
+  trace $ "consumerKey: " <> consumerKey
+  trace $ "consumerSecret: " <> consumerSecret
+  return consumerKey
 
 getEnvironments :: (MonadHttp m, MonadThrow m, MonadLogger m)
   => T.Text -> m T.Environments
@@ -66,11 +61,13 @@ getConsumerKeyAndSecret :: (MonadFile m, MonadHttp m, MonadThrow m, MonadLogger 
   => T.Text -> m (T.Text, T.Text)
 getConsumerKeyAndSecret text = do
   key <- getPeKey
-  case decryptPeFile key text of
+  let peContents = case decryptPeFile key text of
+                 Left e  -> throw e
+                 Right t -> t
+  trace $ T.strip peContents
+  case getSecrets peContents of
     Left e  -> throw e
-    Right t -> trace t
-  -- TODO: Parse PE file
-  return (text, text)
+    Right t -> return t
 
 selectEnvironment :: (MonadThrow m) => T.Environments -> T.Text -> m T.Environment
 selectEnvironment environments env = do

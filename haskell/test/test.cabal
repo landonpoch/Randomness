@@ -16,8 +16,8 @@ cabal-version:       >=1.10
 library
   hs-source-dirs:      src
   exposed-modules:     App.Bootstrapper
-                     , App.Decryption
                      , Utils.Fetch
+                     , Utils.Pe
                      , Types.Config
                      , Types.Environments
                      , Types.Hostnames
@@ -43,6 +43,7 @@ library
                      , transformers
                      , scientific
                      , MonadRandom
+                     , xml
   default-language:    Haskell2010
 
 executable test-exe

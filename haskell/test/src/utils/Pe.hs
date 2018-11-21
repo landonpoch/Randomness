@@ -2,10 +2,10 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
--- TODO: Move this module to a more appropriate place and consider renaming it
-module App.Decryption
+module Utils.Pe
   ( decryptPeFile
   , getPeKey
+  , getSecrets
   ) where
 
 import           Control.Monad.Except    (MonadError, throwError)
@@ -19,6 +19,10 @@ import qualified Data.Text.Encoding      as TE
 import           Types.Exceptions        (CustomException(..))
 import           Data.Char               (isSpace)
 import Types.Global (MonadFile, readFile')
+import           Text.XML.Light.Input (parseXML)
+import           Text.XML.Light.Proc  (findAttr, findElement, onlyElems)
+import           Text.XML.Light.Types (QName (..))
+import           Data.Maybe           (catMaybes)
 
 decryptPeFile :: (MonadError CustomException m) => T.Text -> T.Text -> m T.Text
 decryptPeFile keyStr msg = do
@@ -47,3 +51,18 @@ getPeKey = do
   key <- readFile' "pekey.txt"
   let sanitizedKey = T.filter (not . isSpace) key
   return sanitizedKey
+
+getSecrets :: (MonadError CustomException m) => T.Text -> m (T.Text, T.Text)
+getSecrets peContents = do
+  let parsed = parseXML peContents
+  let elements = onlyElems parsed
+  let found = fmap (findElement $ QName "oauth" (Just "http://www.movenetworks.com/ap/pe-1.0") (Just "ap")) elements
+  let foundElements = catMaybes found
+  let element = head foundElements
+  consumerKey <- case findAttr (QName "consumerKey" Nothing Nothing) element of
+              Nothing -> throwError $ KeyNotFoundError "No consumer key"
+              Just a  -> return $ T.pack a
+  consumerSecret <- case findAttr (QName "consumerSecret" Nothing Nothing) element of
+                 Nothing -> throwError $ KeyNotFoundError "No consumer secret"
+                 Just a  -> return $ T.pack a
+  return (consumerKey, consumerSecret)

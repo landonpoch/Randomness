@@ -8,7 +8,6 @@ import qualified Data.ByteString.Lazy.Char8 as L8
 import qualified Data.Text                  as T
 import qualified Data.Text.IO               as TIO
 -- import           Random.Stuff               (asciiToDecimal, jsonTest)
-import           App.Decryption             (decryptPeFile)
 import           Types.Config               (Config (..))
 import           Types.Exceptions           (CustomException (..))
 
