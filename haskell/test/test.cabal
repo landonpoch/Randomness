@@ -16,6 +16,7 @@ cabal-version:       >=1.10
 library
   hs-source-dirs:      src
   exposed-modules:     App.Bootstrapper
+                     , App.Decryption
                      , Utils.Fetch
                      , Types.Config
                      , Types.Environments
@@ -24,11 +25,14 @@ library
                      , Types.Global
                      , Random.Stuff
   build-depends:       base >= 4.7 && < 5
+                     , cryptonite
+                     , memory
                      , http-client
                      , http-client-tls
                      , http-conduit
                      , http-types
                      , text
+                     , base64-bytestring
                      , bytestring
                      , aeson
                      , yaml
@@ -38,6 +42,7 @@ library
                      , exceptions
                      , transformers
                      , scientific
+                     , MonadRandom
   default-language:    Haskell2010
 
 executable test-exe

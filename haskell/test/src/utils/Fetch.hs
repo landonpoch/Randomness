@@ -32,8 +32,7 @@ request url = do
   let status = statusCode $ responseStatus response
   if status == 200 then do
     let responseBody = getResponseBody response
-    let txtResp = TE.decodeUtf8 . BS.concat $ BL.toChunks responseBody
-    trace txtResp
+    trace . TE.decodeUtf8 . BS.concat $ BL.toChunks responseBody
     return responseBody
   else
     throw $ HttpBadStatusCode status

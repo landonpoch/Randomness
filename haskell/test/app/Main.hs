@@ -5,13 +5,15 @@ module Main where
 import           App.Bootstrapper           (bootstrap)
 import           Control.Exception          (SomeException, catch, try)
 import qualified Data.ByteString.Lazy.Char8 as L8
+import qualified Data.Text                  as T
 import qualified Data.Text.IO               as TIO
 -- import           Random.Stuff               (asciiToDecimal, jsonTest)
+import           App.Decryption             (decryptPeFile)
 import           Types.Config               (Config (..))
 import           Types.Exceptions           (CustomException (..))
 
 appConfig = Config { rootUrl     = "https://webapp.movetv.com/npv/cfdir.json"
-                   , environment = "beta"
+                   , environment = "dev"
                    , platform    = "browser"
                    }
 
@@ -30,9 +32,11 @@ main = catch
           JsonParseError msg     -> print ex
           HttpBadStatusCode code -> print ex
           RandomException        -> print ex
+          CryptoException msg    -> print ex
       Right r -> do
-        TIO.putStrLn "Result:"
-        L8.putStrLn r
+        TIO.putStrLn ""
+        -- TIO.putStrLn "Result:"
+        -- TIO.putStrLn r
     TIO.putStrLn "~~~~~~~~~~~~~~~~~~~~~~"
     TIO.putStrLn ""
 

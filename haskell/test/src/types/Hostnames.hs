@@ -27,17 +27,17 @@ instance ToJSON Hostnames where
 
 data Hostnames = Hostnames { serviceId         :: !T.Text
                            , chromecastAppId   :: Maybe T.Text
-                           , cmsUrl            :: !T.Text
+                           , cmsUrl            :: Maybe T.Text
                            , dmsUrl            :: !T.Text
                            , geoUrl            :: !T.Text
                            , timeUrl           :: !T.Text
-                           , logUrl            :: !T.Text
+                           , logUrl            :: Maybe T.Text
                            , cmwUrl            :: !T.Text
                            , umsUrl            :: !T.Text
                            , microUmsUrl       :: !T.Text
                            , cmwNgUrl          :: Maybe T.Text
                            , extAuthUrl        :: !T.Text
-                           , websiteUrl        :: !T.Text
+                           , websiteUrl        :: Maybe T.Text
                            , appCastUrl        :: Maybe T.Text
                            , launchUrl         :: Maybe T.Text
                            , upgradeUrl        :: Maybe T.Text
@@ -51,17 +51,17 @@ instance FromJSON Hostnames where
     parseJSON = withObject "hostnames" $ \o -> do
         serviceId         <- o .:  "service_id"
         chromecastAppId   <- o .:? "chromecast_app_id"
-        cmsUrl            <- o .:  "cms_url"
+        cmsUrl            <- o .:? "cms_url"
         dmsUrl            <- o .:  "dms_url"
         geoUrl            <- o .:  "geo_url"
         timeUrl           <- o .:  "time_url"
-        logUrl            <- o .:  "log_url"
+        logUrl            <- o .:? "log_url"
         cmwUrl            <- o .:  "cmw_url"
         umsUrl            <- o .:  "ums_url"
         microUmsUrl       <- o .:  "micro_ums_url"
         cmwNgUrl          <- o .:? "cmwng_url"
         extAuthUrl        <- o .:  "extauth_url"
-        websiteUrl        <- o .:  "website_url"
+        websiteUrl        <- o .:? "website_url"
         appCastUrl        <- o .:? "appcast_url"
         launchUrl         <- o .:? "launch_url"
         upgradeUrl        <- o .:? "upgrade_url"
