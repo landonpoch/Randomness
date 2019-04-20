@@ -7,6 +7,7 @@ import qualified Data.Text         as T
 import           Data.Typeable     (Typeable)
 
 data CustomException = JsonParseError T.Text
+  | YamlParseError T.Text
   | KeyNotFoundError T.Text
   | HttpBadStatusCode Int
   | CryptoException T.Text

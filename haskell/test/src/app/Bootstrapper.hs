@@ -9,65 +9,85 @@ import           Control.Monad.Catch  (MonadThrow)
 import qualified Data.ByteString      as BS
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.HashMap.Strict  as HM
-import           Data.Monoid          ((<>))
 import qualified Data.Text            as T
 import qualified Data.Text.Encoding   as TE
 import           Text.Printf          (printf)
-import           Types.Config         (Config (..), environment, platform,
+import           Types.Config         (AppConfig (..), Config (..),
+                                       UserConfig (..), environment, platform,
                                        rootUrl)
 import qualified Types.Environments   as T
 import           Types.Exceptions     (CustomException (..))
-import           Types.Global         (MonadFile, MonadHttp, MonadLogger, trace)
+import           Types.Global         (MonadFile, MonadHttp, MonadLogger,
+                                       MonadSign, trace)
 import qualified Types.Hostnames      as TH
-import           Utils.Fetch          (jsonRequest, request)
-import           Utils.Pe             (decryptPeFile, getPeKey, getSecrets)
+import           Utils.Fetch          (AuthDetails (..), authPutForm, getJSON,
+                                       getText)
+import           Utils.Pe             (decryptPeFile, getSecrets)
 
-bootstrap :: (MonadFile m, MonadHttp m, MonadThrow m, MonadLogger m)
+bootstrap :: (MonadFile m, MonadHttp m, MonadThrow m, MonadLogger m, MonadSign m)
   => Config -> m T.Text
 bootstrap config = do
-  let targetEnvironment = environment config
-  let targetPlatform = platform config
-  environments <- getEnvironments $ rootUrl config
+  let targetEnvironment = environment $ appConfig config
+  let targetPlatform = platform $ appConfig config
+  environments <- getEnvironments . rootUrl $ appConfig config
   selectedEnv <- selectEnvironment environments targetEnvironment
   hostnamesByEnvironment <- getHostnames (T.configHost selectedEnv) targetPlatform
   selectedHostnames <- selectHostnames hostnamesByEnvironment targetEnvironment
   -- configHostname <- getConfigHost selectedHostnames
-  let configHostname = (T.configHost selectedEnv)
+  let configHostname = T.configHost selectedEnv
   -- throw RandomException
   peFile <- getPeFile configHostname targetPlatform targetEnvironment
-  -- TODO: Parse PE file
-  (consumerKey, consumerSecret) <- getConsumerKeyAndSecret peFile
-  trace $ "consumerKey: " <> consumerKey
-  trace $ "consumerSecret: " <> consumerSecret
-  return consumerKey
+  (consumerKey, consumerSecret) <- getConsumerKeyAndSecret (peKey $ appConfig config) peFile
+  let umsHostname = TH.umsUrl selectedHostnames
+  let auth = AuthDetails
+            { consumerKey = consumerKey
+            , consumerSecret = consumerSecret
+            , accessToken = Nothing
+            , tokenSecret = Nothing
+            }
+  response <- authenticate (userConfig config) umsHostname auth
+  -- getUserDetails umsHostname
+  return response
 
 getEnvironments :: (MonadHttp m, MonadThrow m, MonadLogger m)
   => T.Text -> m T.Environments
-getEnvironments rootUrl = jsonRequest . T.pack $ printf "GET %s" rootUrl
+getEnvironments = getJSON
 
 getHostnames :: (MonadHttp m, MonadThrow m, MonadLogger m)
   => T.Text -> T.Text -> m TH.HostnameEnvironments
 getHostnames configHostname platform = do
-  let hostnamesUrl = printf "GET %s/env-list/%s-sling.json" configHostname platform
-  jsonRequest $ T.pack hostnamesUrl
+  let url = printf "%s/env-list/%s-sling.json" configHostname platform
+  getJSON $ T.pack url
 
 getPeFile :: (MonadHttp m, MonadThrow m, MonadLogger m)
   => T.Text -> T.Text -> T.Text -> m T.Text
 getPeFile configHost platform env = do
-  let peUrl = printf "GET %s/%s/sling/pe-%s.xml.enc" configHost platform env
-  fmap (TE.decodeUtf8 . BS.concat . BL.toChunks) (request $ T.pack peUrl)
+  let url = printf "%s/%s/sling/pe-%s.xml.enc" configHost platform env
+  getText $ T.pack url
 
 getConsumerKeyAndSecret :: (MonadFile m, MonadHttp m, MonadThrow m, MonadLogger m)
-  => T.Text -> m (T.Text, T.Text)
-getConsumerKeyAndSecret text = do
-  key <- getPeKey
+  => T.Text -> T.Text -> m (T.Text, T.Text)
+getConsumerKeyAndSecret key text = do
   let peContents = case decryptPeFile key text of
-                 Left e  -> throw e
-                 Right t -> t
-  trace $ T.strip peContents
+                    Left e  -> throw e
+                    Right t -> t
   case getSecrets peContents of
     Left e  -> throw e
     Right t -> return t
+
+authenticate :: (MonadHttp m, MonadThrow m, MonadLogger m, MonadSign m) => UserConfig -> T.Text -> AuthDetails -> m T.Text
+authenticate user umsHost auth = do
+  let url = printf "%s/v3/xauth/access_token.json" umsHost
+  authPutForm auth (T.pack url) [("email", TE.encodeUtf8 $ email user)
+                                ,("password", TE.encodeUtf8 $ password user)
+                                ,("device_guid", TE.encodeUtf8 $ deviceGuid user)]
+
+-- TODO: Wire up this call
+getUserDetails :: (MonadHttp m, MonadThrow m, MonadLogger m) => T.Text -> m T.Text
+getUserDetails umsHost = do
+  let url = printf "%s/v2/user.json" umsHost
+  item <- getText $ T.pack url
+  return ""
 
 selectEnvironment :: (MonadThrow m) => T.Environments -> T.Text -> m T.Environment
 selectEnvironment environments env = do
@@ -86,5 +106,5 @@ getConfigHost selectedHostnames = do
 
 convertMaybe :: (MonadThrow m) => Maybe a -> T.Text -> m a
 convertMaybe val msg = case val of
-  Nothing  -> throw $ KeyNotFoundError msg
-  (Just x) -> return x
+  Nothing -> throw $ KeyNotFoundError msg
+  Just x  -> return x

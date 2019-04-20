@@ -4,7 +4,6 @@
 
 module Utils.Pe
   ( decryptPeFile
-  , getPeKey
   , getSecrets
   ) where
 
@@ -45,12 +44,6 @@ decryptPeFile keyStr msg = do
     Just j  -> return j
   let decryptedMsg = cbcDecrypt key initVector (BS.pack encrypted)
   return $ TE.decodeUtf8 decryptedMsg
-
-getPeKey :: (MonadFile m) => m T.Text
-getPeKey = do
-  key <- readFile' "pekey.txt"
-  let sanitizedKey = T.filter (not . isSpace) key
-  return sanitizedKey
 
 getSecrets :: (MonadError CustomException m) => T.Text -> m (T.Text, T.Text)
 getSecrets peContents = do

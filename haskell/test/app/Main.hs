@@ -8,18 +8,17 @@ import qualified Data.ByteString.Lazy.Char8 as L8
 import qualified Data.Text                  as T
 import qualified Data.Text.IO               as TIO
 -- import           Random.Stuff               (asciiToDecimal, jsonTest)
-import           Types.Config               (Config (..))
+import qualified Types.Config               as TC
 import           Types.Exceptions           (CustomException (..))
+import           Types.Global               (trace)
 
-appConfig = Config { rootUrl     = "https://webapp.movetv.com/npv/cfdir.json"
-                   , environment = "dev"
-                   , platform    = "browser"
-                   }
+main = run
 
-main :: IO ()
-main = catch
+run :: IO()
+run = catch
   (do
-    output <- try $ bootstrap appConfig
+    config <- TC.parseConfig -- TODO: Handle exception here
+    output <- try $ bootstrap config
 
     TIO.putStrLn "~~~~~~~~~~~~~~~~~~~~~~"
     case output of
