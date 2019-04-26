@@ -8,6 +8,7 @@ module Utils.Fetch
   , postForm
   , putForm
   , authPutForm
+  , authGetJson
   , AuthDetails (..)
   ) where
 
@@ -30,7 +31,8 @@ import           Types.Exceptions          (CustomException (..))
 import           Types.Global              (MonadHttp, MonadLogger, MonadSign,
                                             Url, makeRequest, sign, trace)
 import           Web.Authenticate.OAuth    (Credential, OAuth, emptyCredential,
-                                            newOAuth, oauthConsumerKey,
+                                            newCredential, newOAuth,
+                                            oauthConsumerKey,
                                             oauthConsumerSecret, signOAuth)
 
 data AuthDetails = AuthDetails
@@ -40,7 +42,19 @@ data AuthDetails = AuthDetails
   , tokenSecret    :: Maybe T.Text
   }
 
-authPutForm ::(MonadHttp m, MonadThrow m, MonadLogger m, MonadSign m) => AuthDetails -> Url -> [(C.ByteString, C.ByteString)] -> m T.Text
+authGetJson :: (MonadHttp m, MonadThrow m, MonadLogger m, MonadSign m) => AuthDetails -> Url -> m T.Text
+authGetJson auth url = do
+  req <- parseRequest (T.unpack url)
+  let creds = newOAuth
+              { oauthConsumerKey = TE.encodeUtf8 $ consumerKey auth
+              , oauthConsumerSecret = TE.encodeUtf8 $ consumerSecret auth
+              }
+  token <- convertMaybe (accessToken auth) "accessToken is missing for authenticated request"
+  secret <- convertMaybe (tokenSecret auth) "tokenSecret is missing for authenticated request"
+  let userCreds = newCredential (TE.encodeUtf8 token) (TE.encodeUtf8 secret)
+  sign creds userCreds req >>= genericRequest
+
+authPutForm :: (MonadHttp m, MonadThrow m, MonadLogger m, MonadSign m) => AuthDetails -> Url -> [(C.ByteString, C.ByteString)] -> m T.Text
 authPutForm auth url body = do
   -- setRequestBodyURLEncoded automatically sets request method to "POST", so we need to set it back to put after
   req <- setRequestMethod "PUT" . setRequestBodyURLEncoded body <$> parseRequest (T.unpack url)
@@ -48,6 +62,7 @@ authPutForm auth url body = do
               { oauthConsumerKey = TE.encodeUtf8 $ consumerKey auth
               , oauthConsumerSecret = TE.encodeUtf8 $ consumerSecret auth
               }
+  -- let userCreds = Credential
   -- trace . T.pack $ show creds
   sign creds emptyCredential req >>= genericRequest
 
@@ -95,3 +110,7 @@ toLazy :: T.Text -> BL.ByteString
 toLazy = BL.fromStrict . TE.encodeUtf8
 toText :: BL.ByteString -> T.Text
 toText = TE.decodeUtf8 . BL.toStrict
+convertMaybe :: (MonadThrow m) => Maybe a -> T.Text -> m a
+convertMaybe val msg = case val of
+  Nothing -> throw $ KeyNotFoundError msg
+  Just x  -> return x

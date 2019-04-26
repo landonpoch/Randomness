@@ -23,6 +23,7 @@ library
                      , Types.Hostnames
                      , Types.Exceptions
                      , Types.Global
+                     , Types.Auth
                      , Random.Stuff
   build-depends:       base >= 4.7 && < 5
                      , cryptonite
