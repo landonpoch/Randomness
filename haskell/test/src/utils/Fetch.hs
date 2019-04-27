@@ -10,6 +10,7 @@ module Utils.Fetch
   , authPutForm
   , authGetJson
   , AuthDetails (..)
+  , UserTokens (..)
   ) where
 
 import           Control.Applicative       ((<$>), (<*>))
@@ -35,36 +36,41 @@ import           Web.Authenticate.OAuth    (Credential, OAuth, emptyCredential,
                                             oauthConsumerKey,
                                             oauthConsumerSecret, signOAuth)
 
+-- TODO: Consider being able to enforce userTokens at the API level vs. always optional
 data AuthDetails = AuthDetails
   { consumerKey    :: T.Text
   , consumerSecret :: T.Text
-  , accessToken    :: Maybe T.Text
-  , tokenSecret    :: Maybe T.Text
+  , userTokens     :: Maybe UserTokens
   }
 
-authGetJson :: (MonadHttp m, MonadThrow m, MonadLogger m, MonadSign m) => AuthDetails -> Url -> m T.Text
+data UserTokens = UserTokens
+  { accessToken :: T.Text
+  , tokenSecret :: T.Text
+  }
+
+authGetJson :: (MonadHttp m, MonadThrow m, MonadLogger m, MonadSign m, FromJSON a) => AuthDetails -> Url -> m a
 authGetJson auth url = do
-  req <- parseRequest (T.unpack url)
-  let creds = newOAuth
-              { oauthConsumerKey = TE.encodeUtf8 $ consumerKey auth
-              , oauthConsumerSecret = TE.encodeUtf8 $ consumerSecret auth
-              }
-  token <- convertMaybe (accessToken auth) "accessToken is missing for authenticated request"
-  secret <- convertMaybe (tokenSecret auth) "tokenSecret is missing for authenticated request"
-  let userCreds = newCredential (TE.encodeUtf8 token) (TE.encodeUtf8 secret)
-  sign creds userCreds req >>= genericRequest
+  req <- setRequestMethod "GET" <$> parseRequest (T.unpack url)
+  signRequest auth req >>= jsonRequest
 
 authPutForm :: (MonadHttp m, MonadThrow m, MonadLogger m, MonadSign m) => AuthDetails -> Url -> [(C.ByteString, C.ByteString)] -> m T.Text
 authPutForm auth url body = do
   -- setRequestBodyURLEncoded automatically sets request method to "POST", so we need to set it back to put after
   req <- setRequestMethod "PUT" . setRequestBodyURLEncoded body <$> parseRequest (T.unpack url)
-  let creds = newOAuth
+  signRequest auth req >>= genericRequest
+
+signRequest :: (MonadSign m) => AuthDetails -> Request -> m Request
+signRequest auth req = do
+  let oauth = newOAuth
               { oauthConsumerKey = TE.encodeUtf8 $ consumerKey auth
               , oauthConsumerSecret = TE.encodeUtf8 $ consumerSecret auth
               }
-  -- let userCreds = Credential
-  -- trace . T.pack $ show creds
-  sign creds emptyCredential req >>= genericRequest
+  let creds = case userTokens auth of
+              Just tokens -> newCredential
+                              (TE.encodeUtf8 $ accessToken tokens)
+                              (TE.encodeUtf8 $ tokenSecret tokens)
+              Nothing -> emptyCredential
+  sign oauth creds req
 
 getText :: (MonadHttp m, MonadThrow m, MonadLogger m) => Url -> m T.Text
 getText url = initRequest url "GET" >>= genericRequest
@@ -96,11 +102,13 @@ initRequest url verb = setRequestMethod (C.pack verb) <$> parseRequest (T.unpack
 
 genericRequest :: (MonadHttp m, MonadThrow m, MonadLogger m) => Request -> m T.Text
 genericRequest request = do
-  trace . T.pack . show $ request
+  trace . T.pack $ show request
   response <- makeRequest request
   let status = statusCode $ responseStatus response
   let responseBody = toText $ getResponseBody response
-  trace responseBody
+  -- TODO: Consider pretty printing responses
+  -- https://www.reddit.com/r/haskell/comments/8ilw75/there_are_too_many_prettyprinting_libraries/
+  trace . T.pack $ show response
   if status == 200 then
     return responseBody
   else
@@ -110,7 +118,3 @@ toLazy :: T.Text -> BL.ByteString
 toLazy = BL.fromStrict . TE.encodeUtf8
 toText :: BL.ByteString -> T.Text
 toText = TE.decodeUtf8 . BL.toStrict
-convertMaybe :: (MonadThrow m) => Maybe a -> T.Text -> m a
-convertMaybe val msg = case val of
-  Nothing -> throw $ KeyNotFoundError msg
-  Just x  -> return x

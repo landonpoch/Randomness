@@ -4,6 +4,7 @@
 
 module Types.Auth
   ( AccessTokenResponse(..)
+  , UserResponse(..)
   ) where
 
 import           Data.Aeson
@@ -25,3 +26,13 @@ instance FromJSON AccessTokenResponse where
         userGuid <- o .: "user_guid"
         email <- o .: "email"
         return AccessTokenResponse{..}
+
+-- TODO: Add all the fields
+data UserResponse = UserResponse
+  { email :: T.Text
+  } deriving Show
+
+instance FromJSON UserResponse where
+  parseJSON = withObject "userResponse" $ \o -> do
+    email <- o .: "email"
+    return UserResponse{..}

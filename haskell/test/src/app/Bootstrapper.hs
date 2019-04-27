@@ -22,8 +22,9 @@ import           Types.Exceptions     (CustomException (..))
 import           Types.Global         (MonadFile, MonadHttp, MonadLogger,
                                        MonadSign, trace)
 import qualified Types.Hostnames      as TH
-import           Utils.Fetch          (AuthDetails (..), authGetJson,
-                                       authPutForm, getJSON, getText)
+import           Utils.Fetch          (AuthDetails (..), UserTokens (..),
+                                       authGetJson, authPutForm, getJSON,
+                                       getText)
 import           Utils.Pe             (decryptPeFile, getSecrets)
 
 bootstrap :: (MonadFile m, MonadHttp m, MonadThrow m, MonadLogger m, MonadSign m)
@@ -44,14 +45,16 @@ bootstrap config = do
   let auth = AuthDetails
             { consumerKey = consumerKey
             , consumerSecret = consumerSecret
-            , accessToken = Nothing
-            , tokenSecret = Nothing
+            , userTokens = Nothing
             }
   response <- authenticate (userConfig config) umsHostname auth
-  let userAuth = auth { accessToken = Just $ Auth.oauthToken response
-                      , tokenSecret = Just $ Auth.oauthTokenSecret response
-                      }
-  getUserDetails userAuth umsHostname
+  let userTokens = UserTokens
+                   { accessToken = Auth.oauthToken response
+                   , tokenSecret = Auth.oauthTokenSecret response
+                   }
+  let userAuth = auth { userTokens = Just userTokens }
+  response <- getUserDetails userAuth umsHostname
+  trace . T.pack $ show response
   return ""
 
 getEnvironments :: (MonadHttp m, MonadThrow m, MonadLogger m)
@@ -91,11 +94,10 @@ authenticate user umsHost auth = do
     Right val -> return val
 
 -- TODO: Wire up this call
-getUserDetails :: (MonadHttp m, MonadThrow m, MonadLogger m, MonadSign m) => AuthDetails -> T.Text -> m T.Text
+getUserDetails :: (MonadHttp m, MonadThrow m, MonadLogger m, MonadSign m) => AuthDetails -> T.Text -> m Auth.UserResponse
 getUserDetails auth umsHost = do
   let url = printf "%s/v2/user.json" umsHost
-  item <- authGetJson auth (T.pack url)
-  return ""
+  authGetJson auth (T.pack url)
 
 selectEnvironment :: (MonadThrow m) => T.Environments -> T.Text -> m T.Environment
 selectEnvironment environments env = do

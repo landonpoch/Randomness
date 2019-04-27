@@ -1,5 +1,5 @@
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleContexts    #-}
+{-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Utils.Pe
@@ -9,19 +9,21 @@ module Utils.Pe
 
 import           Control.Monad.Except    (MonadError, throwError)
 import           Crypto.Cipher.AES       (AES128)
-import           Crypto.Cipher.Types     (BlockCipher(..), Cipher(..), IV, makeIV)
-import           Crypto.Error            (CryptoFailable(..))
+import           Crypto.Cipher.Types     (BlockCipher (..), Cipher (..), IV,
+                                          makeIV)
+import           Crypto.Error            (CryptoFailable (..))
 import qualified Data.ByteArray.Encoding as BAE
 import qualified Data.ByteString         as BS
+import           Data.Char               (isSpace)
+import           Data.Maybe              (catMaybes)
 import qualified Data.Text               as T
 import qualified Data.Text.Encoding      as TE
-import           Types.Exceptions        (CustomException(..))
-import           Data.Char               (isSpace)
-import Types.Global (MonadFile, readFile')
-import           Text.XML.Light.Input (parseXML)
-import           Text.XML.Light.Proc  (findAttr, findElement, onlyElems)
-import           Text.XML.Light.Types (QName (..))
-import           Data.Maybe           (catMaybes)
+import           Text.XML.Light.Input    (parseXML)
+import           Text.XML.Light.Proc     (findAttr, findElement, onlyElems)
+import           Text.XML.Light.Types    (QName (..))
+import           Types.Exceptions        (CustomException (..))
+import           Types.Global            (MonadFile, readFile')
+
 
 decryptPeFile :: (MonadError CustomException m) => T.Text -> T.Text -> m T.Text
 decryptPeFile keyStr msg = do
