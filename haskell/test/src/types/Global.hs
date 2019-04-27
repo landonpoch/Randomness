@@ -8,15 +8,24 @@ module Types.Global
   , trace
   , sign
   , readFile'
-  ) where
+  )
+where
 
-import qualified Data.ByteString.Lazy.Char8 as L8 (ByteString)
-import qualified Data.Text                  as T
-import qualified Data.Text.IO               as TIO
-import           Network.HTTP.Simple        (Request, Response, httpLBS)
-import           Web.Authenticate.OAuth     (Credential (..), OAuth (..),
-                                             emptyCredential, newOAuth,
-                                             oauthConsumerKey, signOAuth)
+import qualified Data.ByteString.Lazy.Char8    as L8
+                                                ( ByteString )
+import qualified Data.Text                     as T
+import qualified Data.Text.IO                  as TIO
+import           Network.HTTP.Simple            ( Request
+                                                , Response
+                                                , httpLBS
+                                                )
+import           Web.Authenticate.OAuth         ( Credential(..)
+                                                , OAuth(..)
+                                                , emptyCredential
+                                                , newOAuth
+                                                , oauthConsumerKey
+                                                , signOAuth
+                                                )
 
 type Url = T.Text
 

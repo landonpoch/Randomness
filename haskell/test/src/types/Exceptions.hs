@@ -1,10 +1,11 @@
 module Types.Exceptions
   ( CustomException(..)
-  ) where
+  )
+where
 
-import           Control.Exception (Exception)
-import qualified Data.Text         as T
-import           Data.Typeable     (Typeable)
+import           Control.Exception              ( Exception )
+import qualified Data.Text                     as T
+import           Data.Typeable                  ( Typeable )
 
 data CustomException = JsonParseError T.Text
   | YamlParseError T.Text

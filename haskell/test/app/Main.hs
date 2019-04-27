@@ -2,19 +2,22 @@
 
 module Main where
 
-import           App.Bootstrapper           (bootstrap)
-import           Control.Exception          (SomeException, catch, try)
-import qualified Data.ByteString.Lazy.Char8 as L8
-import qualified Data.Text                  as T
-import qualified Data.Text.IO               as TIO
+import           App.Bootstrapper               ( bootstrap )
+import           Control.Exception              ( SomeException
+                                                , catch
+                                                , try
+                                                )
+import qualified Data.ByteString.Lazy.Char8    as L8
+import qualified Data.Text                     as T
+import qualified Data.Text.IO                  as TIO
+import qualified Types.Config                  as TC
+import           Types.Exceptions               ( CustomException(..) )
+import           Types.Global                   ( trace )
 -- import           Random.Stuff               (asciiToDecimal, jsonTest)
-import qualified Types.Config               as TC
-import           Types.Exceptions           (CustomException (..))
-import           Types.Global               (trace)
 
 main = run
 
-run :: IO()
+run :: IO ()
 run = catch
   (do
     config <- TC.parseConfig -- TODO: Handle exception here
@@ -26,8 +29,8 @@ run = catch
         TIO.putStrLn "Exception:"
         -- Could just print the exception but breaking this out simply to learn
         case (ex :: CustomException) of
-          KeyNotFoundError msg   -> print ex
-          JsonParseError msg     -> print ex
+          KeyNotFoundError  msg  -> print ex
+          JsonParseError    msg  -> print ex
           HttpBadStatusCode code -> print ex
           RandomException        -> print ex
           CryptoException msg    -> print ex
