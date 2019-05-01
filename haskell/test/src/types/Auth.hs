@@ -8,6 +8,7 @@ module Types.Auth
   )
 where
 
+import           Protolude
 import           Data.Aeson
 import qualified Data.Text                     as T
 

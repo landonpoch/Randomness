@@ -7,6 +7,7 @@ module Types.Hostnames
   )
 where
 
+import           Protolude
 import           Data.Aeson
 import           Data.HashMap.Strict            ( HashMap )
 import qualified Data.Text                     as T

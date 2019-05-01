@@ -8,6 +8,7 @@ module Utils.Pe
   )
 where
 
+import           Protolude
 import           Control.Monad.Except           ( MonadError
                                                 , throwError
                                                 )
@@ -57,7 +58,7 @@ decryptPeFile keyStr msg = do
       throwError $ CryptoException "Invalid initialization vector in PE file"
     Just j -> return j
   let decryptedMsg = cbcDecrypt key initVector (BS.pack encrypted)
-  return $ TE.decodeUtf8 decryptedMsg
+  return $ toS decryptedMsg
 
 getSecrets :: (MonadError CustomException m) => T.Text -> m (T.Text, T.Text)
 getSecrets peContents = do
@@ -70,7 +71,9 @@ getSecrets peContents = do
         )
         elements
   let foundElements = catMaybes found
-  let element       = head foundElements
+  element <- case head foundElements of
+    Nothing -> throwError $ KeyNotFoundError "Missing oauth node in PE file"
+    Just a  -> return a
   consumerKey <- case findAttr (QName "consumerKey" Nothing Nothing) element of
     Nothing -> throwError $ KeyNotFoundError "No consumer key"
     Just a  -> return $ T.pack a

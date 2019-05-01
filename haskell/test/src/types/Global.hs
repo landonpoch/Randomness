@@ -5,16 +5,17 @@ module Types.Global
   , MonadFile
   , MonadSign
   , makeRequest
-  , trace
+  , debug
   , sign
   , readFile'
   )
 where
 
+import           Protolude
 import qualified Data.ByteString.Lazy.Char8    as L8
                                                 ( ByteString )
 import qualified Data.Text                     as T
-import qualified Data.Text.IO                  as TIO
+import qualified Data.Text.IO                   ( readFile )
 import           Network.HTTP.Simple            ( Request
                                                 , Response
                                                 , httpLBS
@@ -34,7 +35,7 @@ class (Monad m) => MonadHttp m where
 
 -- TODO: examine https://github.com/kazu-yamamoto/logger
 class (Monad m) => MonadLogger m where
-  trace :: T.Text -> m ()
+  debug :: T.Text -> m ()
   -- TODO: Support for more log levels?
 
 class (Monad m) => MonadFile m where
@@ -46,8 +47,8 @@ class (Monad m) => MonadSign m where
 instance MonadHttp IO where
   makeRequest = httpLBS
 instance MonadLogger IO where
-  trace = TIO.putStrLn
+  debug = putText
 instance MonadFile IO where
-  readFile' path = TIO.readFile (T.unpack path)
+  readFile' path = readFile (toS path)
 instance MonadSign IO where
   sign = signOAuth

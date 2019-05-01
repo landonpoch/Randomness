@@ -5,14 +5,12 @@ module App.Bootstrapper
   )
 where
 
+import           Protolude
 import           Control.Exception              ( throw )
 import           Control.Monad.Catch            ( MonadThrow )
 import           Data.Aeson                     ( eitherDecode )
-import qualified Data.ByteString               as BS
-import qualified Data.ByteString.Lazy          as BL
 import qualified Data.HashMap.Strict           as HM
 import qualified Data.Text                     as T
-import qualified Data.Text.Encoding            as TE
 import           Text.Printf                    ( printf )
 import qualified Types.Auth                    as Auth
 import           Types.Config                   ( AppConfig(..)
@@ -28,7 +26,7 @@ import           Types.Global                   ( MonadFile
                                                 , MonadHttp
                                                 , MonadLogger
                                                 , MonadSign
-                                                , trace
+                                                , debug
                                                 )
 import qualified Types.Hostnames               as TH
 import           Utils.Fetch                    ( AuthDetails(..)
@@ -72,8 +70,7 @@ bootstrap config = do
                               }
   let userAuth = auth { userTokens = Just userTokens }
   response <- getUserDetails userAuth umsHostname
-  trace . T.pack $ show response
-  return ""
+  return . T.pack $ show response
 
 getEnvironments
   :: (MonadHttp m, MonadThrow m, MonadLogger m) => T.Text -> m T.Environments
@@ -122,15 +119,14 @@ authenticate user umsHost auth = do
   resp <- authPutForm
     auth
     (T.pack url)
-    [ ("email"      , TE.encodeUtf8 $ email user)
-    , ("password"   , TE.encodeUtf8 $ password user)
-    , ("device_guid", TE.encodeUtf8 $ deviceGuid user)
+    [ ("email"      , email user)
+    , ("password"   , password user)
+    , ("device_guid", deviceGuid user)
     ]
-  case eitherDecode (BL.fromStrict $ TE.encodeUtf8 resp) of
+  case eitherDecode (toS resp) of
     Left  err -> throw . JsonParseError $ T.pack err
     Right val -> return val
 
--- TODO: Wire up this call
 getUserDetails
   :: (MonadHttp m, MonadThrow m, MonadLogger m, MonadSign m)
   => AuthDetails

@@ -46,7 +46,9 @@ library
                      , MonadRandom
                      , xml
                      , authenticate-oauth
+                     , protolude
   default-language:    Haskell2010
+  default-extensions: NoImplicitPrelude
 
 executable test-exe
   hs-source-dirs:      app
@@ -62,7 +64,9 @@ executable test-exe
                      , mtl
                      , transformers
                      , either
+                     , protolude
   default-language:    Haskell2010
+  default-extensions: NoImplicitPrelude
 
 test-suite test-test
   type:                exitcode-stdio-1.0

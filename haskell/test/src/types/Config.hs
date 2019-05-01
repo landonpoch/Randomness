@@ -8,10 +8,11 @@ module Types.Config
   )
 where
 
+import           Protolude
 import           Control.Exception              ( throw )
+import           Control.Monad                  ( fail )
 import           Control.Monad.Catch            ( MonadThrow )
 import qualified Data.Text                     as T
-import qualified Data.Text.Encoding            as TE
 import           Data.Yaml                      ( FromJSON(..)
                                                 , (.:)
                                                 )
@@ -20,7 +21,7 @@ import           Types.Exceptions               ( CustomException(..) )
 import           Types.Global                   ( MonadFile
                                                 , MonadLogger
                                                 , readFile'
-                                                , trace
+                                                , debug
                                                 )
 
 data Config = Config
@@ -66,9 +67,9 @@ instance FromJSON UserConfig where
 parseConfig :: (MonadFile m, MonadLogger m, MonadThrow m) => m Config
 parseConfig = do
   configText <- readFile' "config.yaml"
-  case Y.decodeEither $ TE.encodeUtf8 configText of
+  case Y.decodeEither $ toS configText of
     Left  err    -> throw . YamlParseError $ T.pack err
     Right config -> do
-      trace "Using config:"
-      trace configText
+      debug "Using config:"
+      debug configText
       return config

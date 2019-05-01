@@ -3,6 +3,7 @@ module Types.Exceptions
   )
 where
 
+import           Protolude
 import           Control.Exception              ( Exception )
 import qualified Data.Text                     as T
 import           Data.Typeable                  ( Typeable )
