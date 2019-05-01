@@ -68,7 +68,7 @@ parseConfig :: (MonadFile m, MonadLogger m, MonadThrow m) => m Config
 parseConfig = do
   configText <- readFile' "config.yaml"
   case Y.decodeEither $ toS configText of
-    Left  err    -> throw . YamlParseError $ T.pack err
+    Left  err    -> throw . YamlParseError $ toS err
     Right config -> do
       debug "Using config:"
       debug configText

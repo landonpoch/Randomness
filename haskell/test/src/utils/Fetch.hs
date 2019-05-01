@@ -75,7 +75,7 @@ authGetJson
   -> m a
 authGetJson auth url =
   setRequestMethod "GET"
-    <$> parseRequest (T.unpack url)
+    <$> parseRequest (toS url)
     >>= signRequest auth
     >>= jsonRequest
 
@@ -89,7 +89,7 @@ authPutForm auth url body =
   -- setRequestBodyURLEncoded automatically sets request method to "POST", so we need to set it back to put after
   setRequestMethod "PUT"
     .   setRequestBodyURLEncoded (fmap (join (***) toS) body) -- maps over list and maps over tuple
-    <$> parseRequest (T.unpack url)
+    <$> parseRequest (toS url)
     >>= signRequest auth
     >>= genericRequest
 
@@ -151,13 +151,13 @@ initRequest url verb =
 genericRequest
   :: (MonadHttp m, MonadThrow m, MonadLogger m) => Request -> m T.Text
 genericRequest request = do
-  debug . T.pack $ show request -- TODO: Why doesn't toS work here?
+  debug $ show request
   response <- makeRequest request
   let status       = statusCode $ responseStatus response
   let responseBody = toS $ getResponseBody response
   -- TODO: Consider pretty printing responses
   -- https://www.reddit.com/r/haskell/comments/8ilw75/there_are_too_many_prettyprinting_libraries/
-  debug . T.pack $ show response
+  debug $ show response
   if status == 200
     then return responseBody
     else throw $ HttpBadStatusCode status

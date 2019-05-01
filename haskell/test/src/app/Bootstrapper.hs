@@ -5,6 +5,7 @@ module App.Bootstrapper
   )
 where
 
+import           Data.Monoid                    ( (<>) )
 import           Protolude
 import           Control.Exception              ( throw )
 import           Control.Monad.Catch            ( MonadThrow )
@@ -70,7 +71,7 @@ bootstrap config = do
                               }
   let userAuth = auth { userTokens = Just userTokens }
   response <- getUserDetails userAuth umsHostname
-  return . T.pack $ show response
+  return $ show response
 
 getEnvironments
   :: (MonadHttp m, MonadThrow m, MonadLogger m) => T.Text -> m T.Environments
@@ -82,8 +83,8 @@ getHostnames
   -> T.Text
   -> m TH.HostnameEnvironments
 getHostnames configHostname platform = do
-  let url = printf "%s/env-list/%s-sling.json" configHostname platform
-  getJSON $ T.pack url
+  let url = configHostname <> "/env-list/" <> platform <> "-sling.json"
+  getJSON url
 
 getPeFile
   :: (MonadHttp m, MonadThrow m, MonadLogger m)
@@ -92,8 +93,8 @@ getPeFile
   -> T.Text
   -> m T.Text
 getPeFile configHost platform env = do
-  let url = printf "%s/%s/sling/pe-%s.xml.enc" configHost platform env
-  getText $ T.pack url
+  let url = configHost <> "/" <> platform <> "/sling/pe-" <> env <> ".xml.enc"
+  getText url
 
 getConsumerKeyAndSecret
   :: (MonadFile m, MonadHttp m, MonadThrow m, MonadLogger m)
@@ -115,16 +116,16 @@ authenticate
   -> AuthDetails
   -> m Auth.AccessTokenResponse
 authenticate user umsHost auth = do
-  let url = printf "%s/v3/xauth/access_token.json" umsHost
+  let url = umsHost <> "/v3/xauth/access_token.json"
   resp <- authPutForm
     auth
-    (T.pack url)
+    url
     [ ("email"      , email user)
     , ("password"   , password user)
     , ("device_guid", deviceGuid user)
     ]
   case eitherDecode (toS resp) of
-    Left  err -> throw . JsonParseError $ T.pack err
+    Left  err -> throw . JsonParseError $ toS err
     Right val -> return val
 
 getUserDetails
@@ -133,8 +134,8 @@ getUserDetails
   -> T.Text
   -> m Auth.UserResponse
 getUserDetails auth umsHost = do
-  let url = printf "%s/v2/user.json" umsHost
-  authGetJson auth (T.pack url)
+  let url = umsHost <> "/v2/user.json"
+  authGetJson auth url
 
 selectEnvironment
   :: (MonadThrow m) => T.Environments -> T.Text -> m T.Environment

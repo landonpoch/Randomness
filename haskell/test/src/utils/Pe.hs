@@ -42,7 +42,7 @@ decryptPeFile keyStr msg = do
   let sanitizedMsg = T.filter (not . isSpace) msg
   let keyEncoded   = BAE.convertFromBase BAE.Base16 $ TE.encodeUtf8 keyStr
   keyHex :: BS.ByteString <- case keyEncoded of
-    Left  s -> throwError $ CryptoException $ T.pack s
+    Left  s -> throwError $ CryptoException $ toS s
     Right r -> return r
   key :: AES128 <- case cipherInit keyHex of
     -- TODO: See if there's a way to handle the original crypto error here
@@ -76,9 +76,9 @@ getSecrets peContents = do
     Just a  -> return a
   consumerKey <- case findAttr (QName "consumerKey" Nothing Nothing) element of
     Nothing -> throwError $ KeyNotFoundError "No consumer key"
-    Just a  -> return $ T.pack a
+    Just a  -> return $ toS a
   consumerSecret <-
     case findAttr (QName "consumerSecret" Nothing Nothing) element of
       Nothing -> throwError $ KeyNotFoundError "No consumer secret"
-      Just a  -> return $ T.pack a
+      Just a  -> return $ toS a
   return (consumerKey, consumerSecret)
