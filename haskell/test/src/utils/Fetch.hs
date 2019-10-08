@@ -25,11 +25,17 @@ import           Control.Monad.Catch            ( MonadThrow )
 import           Data.Aeson                     ( FromJSON
                                                 , ToJSON
                                                 , eitherDecode
+                                                , Value
                                                 )
 import qualified Data.Text                     as T
-import           Network.HTTP.Client            ( responseStatus )
+import           Network.HTTP.Client            ( responseStatus
+                                                , responseHeaders
+                                                )
 import           Network.HTTP.Simple            ( Request(..)
+                                                , Response(..)
                                                 , getResponseBody
+                                                , getResponseHeader
+                                                , getResponseHeaders
                                                 , parseRequest
                                                 , setRequestBodyJSON
                                                 , setRequestBodyLBS
@@ -55,6 +61,8 @@ import           Web.Authenticate.OAuth         ( Credential
                                                 , oauthConsumerSecret
                                                 , signOAuth
                                                 )
+import           Text.Show.Pretty               ( ppShow )
+import           Data.Aeson.Encode.Pretty       ( encodePretty )
 
 -- TODO: Consider being able to enforce userTokens at the API level vs. always optional
 data AuthDetails = AuthDetails
@@ -155,9 +163,22 @@ genericRequest request = do
   response <- makeRequest request
   let status       = statusCode $ responseStatus response
   let responseBody = toS $ getResponseBody response
-  -- TODO: Consider pretty printing responses
-  -- https://www.reddit.com/r/haskell/comments/8ilw75/there_are_too_many_prettyprinting_libraries/
-  debug $ show response
+  debugResponse response responseBody
   if status == 200
     then return responseBody
     else throw $ HttpBadStatusCode status
+
+-- TODO: Consider alternative pretty printing options
+-- https://www.reddit.com/r/haskell/comments/8ilw75/there_are_too_many_prettyprinting_libraries/
+debugResponse :: (MonadLogger m, MonadThrow m) => Response a -> T.Text -> m ()
+debugResponse resp body = do
+  debug . toS . ppShow $ getResponseHeaders resp
+  let contentType = getResponseHeader "Content-Type" resp
+  if "application/json; charset=utf-8" `elem` contentType
+    then formatJson body >>= debug
+    else debug body
+
+formatJson :: (MonadThrow m) => T.Text -> m T.Text
+formatJson body = case (eitherDecode $ toSL body) :: Either [Char] Value of
+  Left  err -> throw . JsonParseError $ toS err
+  Right a   -> return $ toS (encodePretty a)

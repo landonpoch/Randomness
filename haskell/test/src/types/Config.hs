@@ -67,8 +67,8 @@ instance FromJSON UserConfig where
 parseConfig :: (MonadFile m, MonadLogger m, MonadThrow m) => m Config
 parseConfig = do
   configText <- readFile' "config.yaml"
-  case Y.decodeEither $ toS configText of
-    Left  err    -> throw . YamlParseError $ toS err
+  case Y.decodeEither' $ toS configText of
+    Left  err    -> throw err
     Right config -> do
       debug "Using config:"
       debug configText

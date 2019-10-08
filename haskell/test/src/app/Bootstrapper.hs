@@ -105,6 +105,7 @@ getConsumerKeyAndSecret key text = do
   let peContents = case decryptPeFile key text of
         Left  e -> throw e
         Right t -> t
+  debug peContents
   case getSecrets peContents of
     Left  e -> throw e
     Right t -> return t
