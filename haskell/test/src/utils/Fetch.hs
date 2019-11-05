@@ -14,35 +14,26 @@ module Utils.Fetch
   )
 where
 
-import           Control.Monad                  ( join )
-import           Control.Arrow                  ( (***) )
 import           Protolude
-import           Control.Applicative            ( (<$>)
-                                                , (<*>)
-                                                )
 import           Control.Exception              ( throw )
-import           Control.Monad.Catch            ( MonadThrow )
 import           Data.Aeson                     ( FromJSON
                                                 , ToJSON
                                                 , eitherDecode
                                                 , Value
                                                 )
 import qualified Data.Text                     as T
-import           Network.HTTP.Client            ( responseStatus
-                                                , responseHeaders
-                                                )
+import qualified Data.List                     as L
+import           Network.HTTP.Client            ( responseStatus )
 import           Network.HTTP.Simple            ( Request(..)
                                                 , Response(..)
                                                 , getResponseBody
                                                 , getResponseHeader
                                                 , getResponseHeaders
-                                                , parseRequest
                                                 , setRequestBodyJSON
                                                 , setRequestBodyLBS
-                                                , setRequestBodyURLEncoded
-                                                , setRequestMethod
                                                 )
 import           Network.HTTP.Types.Status      ( statusCode )
+import           Network.HTTP.Types.Header      ( HeaderName )
 import           Types.Exceptions               ( CustomException(..) )
 import           Types.Global                   ( MonadHttp
                                                 , MonadLogger
@@ -51,18 +42,25 @@ import           Types.Global                   ( MonadHttp
                                                 , makeRequest
                                                 , sign
                                                 , debug
+                                                , info
+                                                , initRequest
+                                                , initAuthPut
                                                 )
-import           Web.Authenticate.OAuth         ( Credential
-                                                , OAuth
-                                                , emptyCredential
+import           Web.Authenticate.OAuth         ( emptyCredential
                                                 , newCredential
                                                 , newOAuth
                                                 , oauthConsumerKey
                                                 , oauthConsumerSecret
-                                                , signOAuth
                                                 )
-import           Text.Show.Pretty               ( ppShow )
 import           Data.Aeson.Encode.Pretty       ( encodePretty )
+import           Data.Text.Prettyprint.Doc      ( line
+                                                , vsep
+                                                , (<+>)
+                                                , indent
+                                                , pretty
+                                                , Doc
+                                                )
+import           Data.CaseInsensitive           ( CI(original) )
 
 -- TODO: Consider being able to enforce userTokens at the API level vs. always optional
 data AuthDetails = AuthDetails
@@ -77,29 +75,21 @@ data UserTokens = UserTokens
   }
 
 authGetJson
-  :: (MonadHttp m, MonadThrow m, MonadLogger m, MonadSign m, FromJSON a)
+  :: (MonadHttp m, MonadLogger m, MonadSign m, FromJSON a)
   => AuthDetails
   -> Url
   -> m a
 authGetJson auth url =
-  setRequestMethod "GET"
-    <$> parseRequest (toS url)
-    >>= signRequest auth
-    >>= jsonRequest
+  initRequest url "GET" >>= signRequest auth >>= jsonRequest
 
 authPutForm
-  :: (MonadHttp m, MonadThrow m, MonadLogger m, MonadSign m)
+  :: (MonadHttp m, MonadLogger m, MonadSign m)
   => AuthDetails
   -> Url
   -> [(T.Text, T.Text)]
   -> m T.Text
 authPutForm auth url body =
-  -- setRequestBodyURLEncoded automatically sets request method to "POST", so we need to set it back to put after
-  setRequestMethod "PUT"
-    .   setRequestBodyURLEncoded (fmap (join (***) toS) body) -- maps over list and maps over tuple
-    <$> parseRequest (toS url)
-    >>= signRequest auth
-    >>= genericRequest
+  initAuthPut url body >>= signRequest auth >>= genericRequest
 
 signRequest :: (MonadSign m) => AuthDetails -> Request -> m Request
 signRequest auth req = do
@@ -112,52 +102,37 @@ signRequest auth req = do
         Nothing -> emptyCredential
   sign oauth creds req
 
-getText :: (MonadHttp m, MonadThrow m, MonadLogger m) => Url -> m T.Text
+getText :: (MonadHttp m, MonadLogger m) => Url -> m T.Text
 getText url = initRequest url "GET" >>= genericRequest
 
-postForm
-  :: (MonadHttp m, MonadThrow m, MonadLogger m) => Url -> T.Text -> m T.Text
+postForm :: (MonadHttp m, MonadLogger m) => Url -> T.Text -> m T.Text
 postForm url body =
   setRequestBodyLBS (toSL body) <$> initRequest url "POST" >>= genericRequest
 
-putForm
-  :: (MonadHttp m, MonadThrow m, MonadLogger m) => Url -> T.Text -> m T.Text
+putForm :: (MonadHttp m, MonadLogger m) => Url -> T.Text -> m T.Text
 putForm url body =
   setRequestBodyLBS (toSL body) <$> initRequest url "PUT" >>= genericRequest
 
-getJSON :: (MonadHttp m, MonadThrow m, MonadLogger m, FromJSON a) => Url -> m a
+getJSON :: (MonadHttp m, MonadLogger m, FromJSON a) => Url -> m a
 getJSON url = initRequest url "GET" >>= jsonRequest
 
 postJSON
-  :: (MonadHttp m, MonadThrow m, MonadLogger m, ToJSON a, FromJSON b)
-  => Url
-  -> a
-  -> m b
+  :: (MonadHttp m, MonadLogger m, ToJSON a, FromJSON b) => Url -> a -> m b
 postJSON url body =
   setRequestBodyJSON body <$> initRequest url "POST" >>= jsonRequest
 
-putJSON
-  :: (MonadHttp m, MonadThrow m, MonadLogger m, ToJSON a, FromJSON b)
-  => Url
-  -> a
-  -> m b
+putJSON :: (MonadHttp m, MonadLogger m, ToJSON a, FromJSON b) => Url -> a -> m b
 putJSON url body =
   setRequestBodyJSON body <$> initRequest url "PUT" >>= jsonRequest
 
-jsonRequest
-  :: (MonadHttp m, MonadThrow m, MonadLogger m, FromJSON a) => Request -> m a
+jsonRequest :: (MonadHttp m, MonadLogger m, FromJSON a) => Request -> m a
 jsonRequest request = do
   resp <- genericRequest request
   case eitherDecode $ toSL resp of
     Left  err -> throw . JsonParseError $ toS err
     Right a   -> return a
 
-initRequest :: (MonadThrow m, MonadLogger m) => Url -> T.Text -> m Request
-initRequest url verb =
-  setRequestMethod (toS verb) <$> parseRequest (T.unpack url)
-
-genericRequest
-  :: (MonadHttp m, MonadThrow m, MonadLogger m) => Request -> m T.Text
+genericRequest :: (MonadHttp m, MonadLogger m) => Request -> m T.Text
 genericRequest request = do
   debug $ show request
   response <- makeRequest request
@@ -170,15 +145,33 @@ genericRequest request = do
 
 -- TODO: Consider alternative pretty printing options
 -- https://www.reddit.com/r/haskell/comments/8ilw75/there_are_too_many_prettyprinting_libraries/
-debugResponse :: (MonadLogger m, MonadThrow m) => Response a -> T.Text -> m ()
+debugResponse :: (MonadLogger m) => Response a -> T.Text -> m ()
 debugResponse resp body = do
-  debug . toS . ppShow $ getResponseHeaders resp
-  let contentType = getResponseHeader "Content-Type" resp
-  if "application/json; charset=utf-8" `elem` contentType
-    then formatJson body >>= debug
-    else debug body
+  let status = statusCode $ responseStatus resp
+  info . show $ "Response Status:" <+> pretty status <> line
+  debug . formatHeaders $ getResponseHeaders resp
+  if isJsonResponse resp
+    then debug $ formatJson body
+    else debug . show $ "Response Body:" <> line <> pretty body <> line
 
-formatJson :: (MonadThrow m) => T.Text -> m T.Text
+isJsonResponse :: Response a -> Bool
+isJsonResponse resp = do
+  let contentType = getResponseHeader "Content-Type" resp
+  or $ fmap (\x -> L.isInfixOf "application/json" (toS x)) contentType
+
+formatHeaders :: [(HeaderName, ByteString)] -> T.Text
+formatHeaders headers = do
+  let mappedHeaders = fmap headerToDoc headers
+  show $ "Response Headers:" <> line <> indent 4 (vsep mappedHeaders) <> line
+
+headerToDoc :: (HeaderName, ByteString) -> Doc ann
+headerToDoc (key, value) =
+  (pretty keyText) <> ":" <+> (pretty $ (toS value :: T.Text))
+  where keyText = (toS $ original key) :: T.Text
+
+formatJson :: T.Text -> T.Text
 formatJson body = case (eitherDecode $ toSL body) :: Either [Char] Value of
   Left  err -> throw . JsonParseError $ toS err
-  Right a   -> return $ toS (encodePretty a)
+  Right a   -> do
+    let rawVal = toS (encodePretty a) :: T.Text
+    show $ "Response Body:" <> line <> pretty rawVal <> line

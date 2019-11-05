@@ -8,22 +8,20 @@ import           Control.Exception              ( SomeException
                                                 , catch
                                                 , try
                                                 )
-import qualified Data.Text                     as T
 import qualified Types.Config                  as TC
 import           Types.Exceptions               ( CustomException(..) )
-import           Types.Global                   ( debug )
-import           Random.Stuff                   ( asciiToDecimal
-                                                , jsonTest
+import           Types.Global                   ( LogLevel(..) )
+import           Control.Monad.Reader           ( ReaderT
+                                                , runReaderT
                                                 )
+
 
 main = run
 
 run :: IO ()
 run = catch
   (do
-    config <- TC.parseConfig -- TODO: Handle exception here
-    output <- try $ bootstrap config
-
+    output <- try (runReaderT execApp Debug)
     case output of
       Left ex -> do
         putText "Exception:"
@@ -40,3 +38,8 @@ run = catch
   )
   -- TODO: Catches all exceptions, this might be bad
   (\e -> print (e :: SomeException))
+
+execApp :: ReaderT LogLevel IO Text
+execApp = do
+  config <- TC.parseConfig -- TODO: Handle exception here
+  bootstrap config

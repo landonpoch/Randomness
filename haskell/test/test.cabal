@@ -47,8 +47,9 @@ library
                      , xml
                      , authenticate-oauth
                      , protolude
-                     , pretty-show
+                     , prettyprinter
                      , aeson-pretty
+                     , case-insensitive
   default-language:    Haskell2010
   default-extensions: NoImplicitPrelude
 

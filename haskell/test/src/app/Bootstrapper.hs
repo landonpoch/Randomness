@@ -8,11 +8,9 @@ where
 import           Data.Monoid                    ( (<>) )
 import           Protolude
 import           Control.Exception              ( throw )
-import           Control.Monad.Catch            ( MonadThrow )
 import           Data.Aeson                     ( eitherDecode )
 import qualified Data.HashMap.Strict           as HM
 import qualified Data.Text                     as T
-import           Text.Printf                    ( printf )
 import qualified Types.Auth                    as Auth
 import           Types.Config                   ( AppConfig(..)
                                                 , Config(..)
@@ -21,7 +19,7 @@ import           Types.Config                   ( AppConfig(..)
                                                 , platform
                                                 , rootUrl
                                                 )
-import qualified Types.Environments            as T
+import qualified Types.Environments            as TE
 import           Types.Exceptions               ( CustomException(..) )
 import           Types.Global                   ( MonadFile
                                                 , MonadHttp
@@ -42,19 +40,20 @@ import           Utils.Pe                       ( decryptPeFile
                                                 )
 
 bootstrap
-  :: (MonadFile m, MonadHttp m, MonadThrow m, MonadLogger m, MonadSign m)
+  :: (MonadFile m, MonadHttp m, MonadLogger m, MonadSign m)
   => Config
   -> m T.Text
 bootstrap config = do
   let targetEnvironment = environment $ appConfig config
   let targetPlatform    = platform $ appConfig config
-  environments           <- getEnvironments . rootUrl $ appConfig config
-  selectedEnv            <- selectEnvironment environments targetEnvironment
-  hostnamesByEnvironment <- getHostnames (T.configHost selectedEnv)
+  environments <- getEnvironments . rootUrl $ appConfig config
+  let selectedEnv = selectEnvironment environments targetEnvironment
+  hostnamesByEnvironment <- getHostnames (TE.configHost selectedEnv)
                                          targetPlatform
-  selectedHostnames <- selectHostnames hostnamesByEnvironment targetEnvironment
+  let selectedHostnames =
+        selectHostnames hostnamesByEnvironment targetEnvironment
   -- configHostname <- getConfigHost selectedHostnames
-  let configHostname = T.configHost selectedEnv
+  let configHostname = TE.configHost selectedEnv
   -- throw RandomException
   peFile <- getPeFile configHostname targetPlatform targetEnvironment
   (consumerKey, consumerSecret) <- getConsumerKeyAndSecret
@@ -73,12 +72,11 @@ bootstrap config = do
   response <- getUserDetails userAuth umsHostname
   return $ show response
 
-getEnvironments
-  :: (MonadHttp m, MonadThrow m, MonadLogger m) => T.Text -> m T.Environments
+getEnvironments :: (MonadHttp m, MonadLogger m) => T.Text -> m TE.Environments
 getEnvironments = getJSON
 
 getHostnames
-  :: (MonadHttp m, MonadThrow m, MonadLogger m)
+  :: (MonadHttp m, MonadLogger m)
   => T.Text
   -> T.Text
   -> m TH.HostnameEnvironments
@@ -87,17 +85,13 @@ getHostnames configHostname platform = do
   getJSON url
 
 getPeFile
-  :: (MonadHttp m, MonadThrow m, MonadLogger m)
-  => T.Text
-  -> T.Text
-  -> T.Text
-  -> m T.Text
+  :: (MonadHttp m, MonadLogger m) => T.Text -> T.Text -> T.Text -> m T.Text
 getPeFile configHost platform env = do
   let url = configHost <> "/" <> platform <> "/sling/pe-" <> env <> ".xml.enc"
   getText url
 
 getConsumerKeyAndSecret
-  :: (MonadFile m, MonadHttp m, MonadThrow m, MonadLogger m)
+  :: (MonadFile m, MonadHttp m, MonadLogger m)
   => T.Text
   -> T.Text
   -> m (T.Text, T.Text)
@@ -111,7 +105,7 @@ getConsumerKeyAndSecret key text = do
     Right t -> return t
 
 authenticate
-  :: (MonadHttp m, MonadThrow m, MonadLogger m, MonadSign m)
+  :: (MonadHttp m, MonadLogger m, MonadSign m)
   => UserConfig
   -> T.Text
   -> AuthDetails
@@ -130,7 +124,7 @@ authenticate user umsHost auth = do
     Right val -> return val
 
 getUserDetails
-  :: (MonadHttp m, MonadThrow m, MonadLogger m, MonadSign m)
+  :: (MonadHttp m, MonadLogger m, MonadSign m)
   => AuthDetails
   -> T.Text
   -> m Auth.UserResponse
@@ -138,24 +132,22 @@ getUserDetails auth umsHost = do
   let url = umsHost <> "/v2/user.json"
   authGetJson auth url
 
-selectEnvironment
-  :: (MonadThrow m) => T.Environments -> T.Text -> m T.Environment
+selectEnvironment :: TE.Environments -> T.Text -> TE.Environment
 selectEnvironment environments env = do
-  let maybeEnvironment = HM.lookup env $ T.environments environments
+  let maybeEnvironment = HM.lookup env $ TE.environments environments
   convertMaybe maybeEnvironment "target environment doesn't exist"
 
-selectHostnames
-  :: (MonadThrow m) => TH.HostnameEnvironments -> T.Text -> m TH.Hostnames
+selectHostnames :: TH.HostnameEnvironments -> T.Text -> TH.Hostnames
 selectHostnames hostnamesByEnvironment env = do
   let maybeHostnames = HM.lookup env $ TH.environments hostnamesByEnvironment
   convertMaybe maybeHostnames "environment missing hostnames"
 
-getConfigHost :: (MonadThrow m) => TH.Hostnames -> m T.Text
+getConfigHost :: TH.Hostnames -> T.Text
 getConfigHost selectedHostnames = do
   let maybeConfigUrl = TH.appCastUrl selectedHostnames
   convertMaybe maybeConfigUrl "config url is missing from hostnames"
 
-convertMaybe :: (MonadThrow m) => Maybe a -> T.Text -> m a
+convertMaybe :: Maybe a -> T.Text -> a
 convertMaybe val msg = case val of
   Nothing -> throw $ KeyNotFoundError msg
-  Just x  -> return x
+  Just x  -> x

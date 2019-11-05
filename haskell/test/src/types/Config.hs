@@ -10,8 +10,8 @@ where
 
 import           Protolude
 import           Control.Exception              ( throw )
+-- TODO: is this fail thing really the right thing to use?
 import           Control.Monad                  ( fail )
-import           Control.Monad.Catch            ( MonadThrow )
 import qualified Data.Text                     as T
 import           Data.Yaml                      ( FromJSON(..)
                                                 , (.:)
@@ -64,7 +64,7 @@ instance FromJSON UserConfig where
     UserConfig <$> v .: "email" <*> v .: "password" <*> v .: "device-guid"
   parseJSON _ = fail "Unable to parse user config"
 
-parseConfig :: (MonadFile m, MonadLogger m, MonadThrow m) => m Config
+parseConfig :: (MonadFile m, MonadLogger m) => m Config
 parseConfig = do
   configText <- readFile' "config.yaml"
   case Y.decodeEither' $ toS configText of
