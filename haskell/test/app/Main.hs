@@ -3,9 +3,7 @@
 module Main where
 
 import           Protolude
-import           App.Bootstrapper               ( bootstrap
-                                                , bootstrap'
-                                                )
+import           App.Bootstrapper               ( bootstrap )
 import           Control.Exception              ( SomeException
                                                 , catch
                                                 , try
@@ -13,39 +11,19 @@ import           Control.Exception              ( SomeException
 import qualified Types.Config                  as TC
 import           Types.Exceptions               ( CustomException(..) )
 import           Types.Global                   ( Config(..)
+                                                , AppConfig(..)
                                                 , LogLevel(..)
-                                                , App(..)
                                                 , AppM(..)
-                                                , appConfig
-                                                , logLevel
                                                 , Env(..)
-                                                , Env'(..)
                                                 , Services(..)
-                                                , Services'(..)
                                                 , Log(..)
-                                                , Log'(..)
                                                 , Http(..)
-                                                , Http'(..)
                                                 , FileReader(..)
-                                                , FileReader'(..)
                                                 , Signer(..)
-                                                , Signer'(..)
-                                                , Url
                                                 )
-import           Control.Monad.Reader           ( ReaderT
-                                                , runReaderT
-                                                )
-import           Control.Monad.Catch            ( MonadThrow )
-import           Network.HTTP.Simple            ( httpLBS
-                                                , setRequestMethod
-                                                , Request
-                                                , parseRequest
-                                                , setRequestBodyURLEncoded
-                                                )
-import           Web.Authenticate.OAuth         ( Credential(..)
-                                                , OAuth(..)
-                                                , signOAuth
-                                                )
+import           Control.Monad.Reader           ( runReaderT )
+import           Network.HTTP.Simple            ( httpLBS )
+import           Web.Authenticate.OAuth         ( signOAuth )
 
 main = run
 
@@ -54,8 +32,8 @@ run = catch
   (do
     output <- try
       (do
-        env <- buildEnv'
-        runReaderT (runAppM bleh) env
+        allConfig <- TC.parseConfig
+        runReaderT (runAppM bootstrap) (buildEnv allConfig)
       )
     case output of
       Left ex -> do
@@ -74,48 +52,28 @@ run = catch
   -- TODO: Catches all exceptions, this might be bad
   (\e -> print (e :: SomeException))
 
+buildEnv :: Config -> Env
+buildEnv allConfig =
+  Env { config = allConfig, services = buildServices $ appConfig allConfig }
+
+readFile' :: MonadIO m => Text -> m Text
+readFile' path = liftIO (readFile $ toS path)
+
+buildServices :: AppConfig -> Services
+buildServices appConfig = Services
+  { logging    = buildLogger $ logLevel appConfig
+  , http       = Http { makeRequest = httpLBS }
+  , fileReader = FileReader { read = readFile' }
+  , signer     = Signer { sign = signOAuth }
+  }
+
 output :: MonadIO m => LogLevel -> LogLevel -> Text -> m ()
 output msgLevel appLevel msg = when (msgLevel >= appLevel) $ putText msg
 
-fReadFile'' :: Text -> App Text
-fReadFile'' path = lift (readFile (toS path))
-
-fReadFile''' :: MonadIO m => Text -> m Text
-fReadFile''' path = liftIO (readFile $ toS path)
-
-buildEnv :: IO Env
-buildEnv = do
-  allConfig <- TC.parseConfig
-  let appLogLevel = logLevel $ appConfig allConfig
-  return Env
-    { config   = allConfig
-    , services = Services
-                   { logging    = Log { lDebug = output Debug appLogLevel
-                                      , lInfo  = output Info appLogLevel
-                                      }
-                   , http       = Http { hMakeRequest = httpLBS }
-                   , fileReader = FileReader { fReadFile = fReadFile'' }
-                   , signer     = Signer { sSign = signOAuth }
-                   }
-    }
-
-buildEnv' :: IO Env'
-buildEnv' = do
-  allConfig <- TC.parseConfig
-  let appLogLevel = logLevel $ appConfig allConfig
-  return Env'
-    { config'   = allConfig
-    , services' = Services'
-                    { logging'    = Log' { lDebug' = output Debug appLogLevel
-                                         , lInfo'  = output Info appLogLevel
-                                         }
-                    , http'       = Http' { hMakeRequest' = httpLBS }
-                    , fileReader' = FileReader' { fReadFile' = fReadFile''' }
-                    , signer'     = Signer' { sSign' = signOAuth }
-                    }
-    }
-
-bleh :: AppM Text
-bleh = do
-  env <- ask
-  bootstrap' $ config' env
+buildLogger :: LogLevel -> Log
+buildLogger appLogLevel = Log { debug = output Debug appLogLevel
+                              , info  = output Info appLogLevel
+                              , warn  = output Warn appLogLevel
+                              , error = output Error appLogLevel
+                              , fatal = output Fatal appLogLevel
+                              }

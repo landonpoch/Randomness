@@ -59,10 +59,12 @@ instance FromJSON UserConfig where
     UserConfig <$> v .: "email" <*> v .: "password" <*> v .: "device-guid"
   parseJSON _ = fail "Unable to parse user config"
 
--- parseConfig :: (MonadFile m, MonadLogger m) => m Config
-parseConfig :: IO Config
+parseConfig :: MonadIO m => m Config
 parseConfig = do
-  configText <- readFile "config.yaml"
+  configText <- liftIO $ readFile "config.yaml"
   case Y.decodeEither' $ toS configText of
     Left  err    -> throw err
-    Right config -> return config
+    Right config -> do
+      putStrLn ("Using Config:" :: Text)
+      putStrLn configText
+      return config
