@@ -32,9 +32,6 @@ import           Text.XML.Light.Proc            ( findAttr
                                                 )
 import           Text.XML.Light.Types           ( QName(..) )
 import           Types.Exceptions               ( CustomException(..) )
-import           Types.Global                   ( MonadFile
-                                                , readFile'
-                                                )
 
 
 decryptPeFile :: (MonadError CustomException m) => T.Text -> T.Text -> m T.Text

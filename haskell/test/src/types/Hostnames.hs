@@ -32,7 +32,7 @@ data Hostnames = Hostnames { serviceId         :: !T.Text
                            , geoUrl            :: !T.Text
                            , timeUrl           :: !T.Text
                            , logUrl            :: Maybe T.Text
-                           , cmwUrl            :: !T.Text
+                           , cmwUrl            :: Maybe T.Text
                            , umsUrl            :: !T.Text
                            , microUmsUrl       :: !T.Text
                            , cmwNgUrl          :: Maybe T.Text
@@ -56,7 +56,7 @@ instance FromJSON Hostnames where
     geoUrl            <- o .: "geo_url"
     timeUrl           <- o .: "time_url"
     logUrl            <- o .:? "log_url"
-    cmwUrl            <- o .: "cmw_url"
+    cmwUrl            <- o .:? "cmw_url"
     umsUrl            <- o .: "ums_url"
     microUmsUrl       <- o .: "micro_ums_url"
     cmwNgUrl          <- o .:? "cmwng_url"

@@ -2,6 +2,7 @@
 
 module App.Bootstrapper
   ( bootstrap
+  , bootstrap'
   )
 where
 
@@ -21,28 +22,32 @@ import           Types.Config                   ( AppConfig(..)
                                                 )
 import qualified Types.Environments            as TE
 import           Types.Exceptions               ( CustomException(..) )
-import           Types.Global                   ( MonadFile
-                                                , MonadHttp
-                                                , MonadLogger
-                                                , MonadSign
-                                                , debug
+import           Types.Global                   ( App(..)
+                                                , AppM
+                                                , Services(..)
+                                                , Services'(..)
+                                                , Log(..)
+                                                , Log'(..)
+                                                , Env(..)
+                                                , Env'(..)
                                                 )
 import qualified Types.Hostnames               as TH
 import           Utils.Fetch                    ( AuthDetails(..)
                                                 , UserTokens(..)
                                                 , authGetJson
+                                                , authGetJson'
                                                 , authPutForm
+                                                , authPutForm'
                                                 , getJSON
+                                                , getJSON'
                                                 , getText
+                                                , getText'
                                                 )
 import           Utils.Pe                       ( decryptPeFile
                                                 , getSecrets
                                                 )
 
-bootstrap
-  :: (MonadFile m, MonadHttp m, MonadLogger m, MonadSign m)
-  => Config
-  -> m T.Text
+bootstrap :: Config -> App Text
 bootstrap config = do
   let targetEnvironment = environment $ appConfig config
   let targetPlatform    = platform $ appConfig config
@@ -72,30 +77,76 @@ bootstrap config = do
   response <- getUserDetails userAuth umsHostname
   return $ show response
 
-getEnvironments :: (MonadHttp m, MonadLogger m) => T.Text -> m TE.Environments
+bootstrap' :: Config -> AppM Text
+bootstrap' config = do
+  let targetEnvironment = environment $ appConfig config
+  let targetPlatform    = platform $ appConfig config
+  environments <- getEnvironments' . rootUrl $ appConfig config
+  let selectedEnv = selectEnvironment environments targetEnvironment
+  hostnamesByEnvironment <- getHostnames' (TE.configHost selectedEnv)
+                                          targetPlatform
+  let selectedHostnames =
+        selectHostnames hostnamesByEnvironment targetEnvironment
+  -- configHostname <- getConfigHost selectedHostnames
+  let configHostname = TE.configHost selectedEnv
+  -- throw RandomException
+  peFile <- getPeFile' configHostname targetPlatform targetEnvironment
+  (consumerKey, consumerSecret) <- getConsumerKeyAndSecret'
+    (peKey $ appConfig config)
+    peFile
+  let umsHostname = TH.umsUrl selectedHostnames
+  let auth = AuthDetails { consumerKey    = consumerKey
+                         , consumerSecret = consumerSecret
+                         , userTokens     = Nothing
+                         }
+  response <- authenticate' (userConfig config) umsHostname auth
+  let userTokens = UserTokens { accessToken = Auth.oauthToken response
+                              , tokenSecret = Auth.oauthTokenSecret response
+                              }
+  let userAuth = auth { userTokens = Just userTokens }
+  response <- getUserDetails' userAuth umsHostname
+  return $ show response
+
+getEnvironments :: Text -> App TE.Environments
 getEnvironments = getJSON
 
-getHostnames
-  :: (MonadHttp m, MonadLogger m)
-  => T.Text
-  -> T.Text
-  -> m TH.HostnameEnvironments
+getEnvironments' :: Text -> AppM TE.Environments
+getEnvironments' = getJSON'
+
+getHostnames :: Text -> Text -> App TH.HostnameEnvironments
 getHostnames configHostname platform = do
   let url = configHostname <> "/env-list/" <> platform <> "-sling.json"
   getJSON url
 
-getPeFile
-  :: (MonadHttp m, MonadLogger m) => T.Text -> T.Text -> T.Text -> m T.Text
+getHostnames' :: Text -> Text -> AppM TH.HostnameEnvironments
+getHostnames' configHostname platform = do
+  let url = configHostname <> "/env-list/" <> platform <> "-sling.json"
+  getJSON' url
+
+getPeFile :: Text -> Text -> Text -> App Text
 getPeFile configHost platform env = do
   let url = configHost <> "/" <> platform <> "/sling/pe-" <> env <> ".xml.enc"
   getText url
 
-getConsumerKeyAndSecret
-  :: (MonadFile m, MonadHttp m, MonadLogger m)
-  => T.Text
-  -> T.Text
-  -> m (T.Text, T.Text)
+getPeFile' :: Text -> Text -> Text -> AppM Text
+getPeFile' configHost platform env = do
+  let url = configHost <> "/" <> platform <> "/sling/pe-" <> env <> ".xml.enc"
+  getText' url
+
+getConsumerKeyAndSecret :: Text -> Text -> App (Text, Text)
 getConsumerKeyAndSecret key text = do
+  debug <- fmap (lDebug . logging . services) ask
+  let peContents = case decryptPeFile key text of
+        Left  e -> throw e
+        Right t -> t
+  liftIO $ debug peContents
+  case getSecrets peContents of
+    Left  e -> throw e
+    Right t -> return t
+
+getConsumerKeyAndSecret' :: Text -> Text -> AppM (Text, Text)
+getConsumerKeyAndSecret' key text = do
+  debug <- fmap (lDebug' . logging' . services') ask
   let peContents = case decryptPeFile key text of
         Left  e -> throw e
         Right t -> t
@@ -105,11 +156,7 @@ getConsumerKeyAndSecret key text = do
     Right t -> return t
 
 authenticate
-  :: (MonadHttp m, MonadLogger m, MonadSign m)
-  => UserConfig
-  -> T.Text
-  -> AuthDetails
-  -> m Auth.AccessTokenResponse
+  :: UserConfig -> Text -> AuthDetails -> App Auth.AccessTokenResponse
 authenticate user umsHost auth = do
   let url = umsHost <> "/v3/xauth/access_token.json"
   resp <- authPutForm
@@ -123,14 +170,30 @@ authenticate user umsHost auth = do
     Left  err -> throw . JsonParseError $ toS err
     Right val -> return val
 
-getUserDetails
-  :: (MonadHttp m, MonadLogger m, MonadSign m)
-  => AuthDetails
-  -> T.Text
-  -> m Auth.UserResponse
+authenticate'
+  :: UserConfig -> Text -> AuthDetails -> AppM Auth.AccessTokenResponse
+authenticate' user umsHost auth = do
+  let url = umsHost <> "/v3/xauth/access_token.json"
+  resp <- authPutForm'
+    auth
+    url
+    [ ("email"      , email user)
+    , ("password"   , password user)
+    , ("device_guid", deviceGuid user)
+    ]
+  case eitherDecode (toS resp) of
+    Left  err -> throw . JsonParseError $ toS err
+    Right val -> return val
+
+getUserDetails :: AuthDetails -> Text -> App Auth.UserResponse
 getUserDetails auth umsHost = do
   let url = umsHost <> "/v2/user.json"
   authGetJson auth url
+
+getUserDetails' :: AuthDetails -> Text -> AppM Auth.UserResponse
+getUserDetails' auth umsHost = do
+  let url = umsHost <> "/v2/user.json"
+  authGetJson' auth url
 
 selectEnvironment :: TE.Environments -> T.Text -> TE.Environment
 selectEnvironment environments env = do

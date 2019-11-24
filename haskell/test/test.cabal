@@ -68,6 +68,9 @@ executable test-exe
                      , transformers
                      , either
                      , protolude
+                     , http-conduit
+                     , authenticate-oauth
+                     , exceptions
   default-language:    Haskell2010
   default-extensions: NoImplicitPrelude
 

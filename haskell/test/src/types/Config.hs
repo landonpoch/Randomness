@@ -18,29 +18,11 @@ import           Data.Yaml                      ( FromJSON(..)
                                                 )
 import qualified Data.Yaml                     as Y
 import           Types.Exceptions               ( CustomException(..) )
-import           Types.Global                   ( MonadFile
-                                                , MonadLogger
-                                                , readFile'
-                                                , debug
+import           Types.Global                   ( Config(..)
+                                                , LogLevel(..)
+                                                , AppConfig(..)
+                                                , UserConfig(..)
                                                 )
-
-data Config = Config
-  { appConfig  :: AppConfig
-  , userConfig :: UserConfig
-  } deriving (Eq, Show)
-
-data AppConfig = AppConfig
-  { rootUrl     :: T.Text
-  , environment :: T.Text
-  , platform    :: T.Text
-  , peKey       :: T.Text
-  } deriving (Eq, Show)
-
-data UserConfig = UserConfig
-  { email      :: T.Text
-  , password   :: T.Text
-  , deviceGuid :: T.Text
-  } deriving (Eq, Show)
 
 instance FromJSON Config where
   parseJSON (Y.Object v) = Config <$> v .: "app" <*> v .: "user"
@@ -57,19 +39,30 @@ instance FromJSON AppConfig where
       .:  "platform"
       <*> v
       .:  "pe-key"
+      <*> v
+      .:  "log-level"
   parseJSON _ = fail "Unable to parse app config"
+
+instance FromJSON LogLevel where
+  parseJSON (Y.String s) = parseVal s
+   where
+    parseVal "debug" = return Debug
+    parseVal "info"  = return Info
+    parseVal "warn"  = return Warn
+    parseVal "error" = return Error
+    parseVal "fatal" = return Fatal
+    parseVal _       = fail "Invalid value for log-level in config file"
+  parseJSON _ = fail "Invalid type for log-level in config file"
 
 instance FromJSON UserConfig where
   parseJSON (Y.Object v) =
     UserConfig <$> v .: "email" <*> v .: "password" <*> v .: "device-guid"
   parseJSON _ = fail "Unable to parse user config"
 
-parseConfig :: (MonadFile m, MonadLogger m) => m Config
+-- parseConfig :: (MonadFile m, MonadLogger m) => m Config
+parseConfig :: IO Config
 parseConfig = do
-  configText <- readFile' "config.yaml"
+  configText <- readFile "config.yaml"
   case Y.decodeEither' $ toS configText of
     Left  err    -> throw err
-    Right config -> do
-      debug "Using config:"
-      debug configText
-      return config
+    Right config -> return config
