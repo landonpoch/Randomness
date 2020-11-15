@@ -9,9 +9,52 @@ module Random.Stuff
 where
 
 import           Control.Monad                  ( fail )
-import           Protolude
-import           Data.Aeson
-import           Data.Aeson.Types
+import Protolude
+    ( filter,
+      ($),
+      fromIntegral,
+      Eq((==)),
+      Monad(return),
+      Functor(fmap),
+      Num(negate, (*)),
+      Show,
+      Foldable(elem, foldl),
+      Bool(True),
+      Char,
+      Double,
+      Int,
+      Maybe(..),
+      IO,
+      Either(..),
+      (.),
+      flip,
+      zipWith,
+      (^^),
+      identity,
+      map,
+      print,
+      head,
+      sum )
+import Data.Aeson
+    ( decode,
+      eitherDecode,
+      encode,
+      (.:),
+      withObject,
+      object,
+      FromJSON(parseJSON),
+      Value(String, Bool, Object, Array, Number),
+      KeyValue((.=)),
+      ToJSON(toJSON) )
+import Data.Aeson.Types
+    ( (.:),
+      withObject,
+      object,
+      FromJSON(parseJSON),
+      Value(String, Bool, Object, Array, Number),
+      KeyValue((.=)),
+      ToJSON(toJSON),
+      Parser )
 import qualified Data.ByteString.Lazy.Internal as I
 import qualified Data.HashMap.Lazy             as HML
                                                 ( member )
@@ -23,17 +66,12 @@ import qualified Data.List                     as L
                                                 , zipWith
                                                 )
 import qualified Data.Maybe                    as M
-import           Data.Scientific               as Scientific
-import           Data.Text                     as Text
-                                         hiding ( filter
-                                                , foldl
-                                                , head
-                                                , map
-                                                , zipWith
-                                                )
+import Data.Scientific as Scientific
+    ( Scientific, floatingOrInteger )
+import Data.Text as Text ( Text, unpack )
 import qualified Data.Text.Lazy.Encoding       as T
 import qualified Data.Text.Lazy.IO             as T
-import           GHC.Exts
+import GHC.Exts ( IsList(fromList), Char, Double, Int )
 
 asciiToDecimal :: Text.Text -> Double
 asciiToDecimal t =

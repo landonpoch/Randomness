@@ -3,10 +3,8 @@ module Types.Exceptions
   )
 where
 
-import           Protolude
-import           Control.Exception              ( Exception )
+import Protolude ( Show, Typeable, Int, Exception )
 import qualified Data.Text                     as T
-import           Data.Typeable                  ( Typeable )
 
 data CustomException = JsonParseError T.Text
   | YamlParseError T.Text

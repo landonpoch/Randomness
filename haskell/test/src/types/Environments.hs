@@ -7,8 +7,15 @@ module Types.Environments
   )
 where
 
-import           Protolude
-import           Data.Aeson
+import Protolude ( ($), Monad(return), Show, Maybe )
+import Data.Aeson
+    ( (.:),
+      (.:?),
+      withObject,
+      object,
+      FromJSON(parseJSON),
+      KeyValue((.=)),
+      ToJSON(toJSON) )
 import           Data.HashMap.Strict            ( HashMap )
 import qualified Data.Text                     as T
 

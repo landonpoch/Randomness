@@ -8,10 +8,19 @@ module Utils.Pe
   )
 where
 
-import           Protolude
-import           Control.Monad.Except           ( MonadError
-                                                , throwError
-                                                )
+import Protolude
+    ( ($),
+      Monad(return),
+      Functor(fmap),
+      Maybe(Just, Nothing),
+      Either(Right, Left),
+      catMaybes,
+      (.),
+      splitAt,
+      not,
+      toS,
+      head,
+      MonadError(throwError) )
 import           Crypto.Cipher.AES              ( AES128 )
 import           Crypto.Cipher.Types            ( BlockCipher(..)
                                                 , Cipher(..)
@@ -22,7 +31,6 @@ import           Crypto.Error                   ( CryptoFailable(..) )
 import qualified Data.ByteArray.Encoding       as BAE
 import qualified Data.ByteString               as BS
 import           Data.Char                      ( isSpace )
-import           Data.Maybe                     ( catMaybes )
 import qualified Data.Text                     as T
 import qualified Data.Text.Encoding            as TE
 import           Text.XML.Light.Input           ( parseXML )

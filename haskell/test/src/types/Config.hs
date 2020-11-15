@@ -8,16 +8,24 @@ module Types.Config
   )
 where
 
-import           Protolude
+import Protolude
+    ( ($),
+      Monad(return),
+      Applicative((<*>)),
+      Either(Right, Left),
+      Text,
+      (<$>),
+      toS,
+      readFile,
+      MonadIO(..),
+      Print(putStrLn) )
 import           Control.Exception              ( throw )
 -- TODO: is this fail thing really the right thing to use?
 import           Control.Monad                  ( fail )
-import qualified Data.Text                     as T
 import           Data.Yaml                      ( FromJSON(..)
                                                 , (.:)
                                                 )
 import qualified Data.Yaml                     as Y
-import           Types.Exceptions               ( CustomException(..) )
 import           Types.Global                   ( Config(..)
                                                 , LogLevel(..)
                                                 , AppConfig(..)

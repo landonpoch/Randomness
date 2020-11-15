@@ -11,7 +11,27 @@ module Utils.Fetch
   )
 where
 
-import           Protolude
+import Protolude
+    ( ($),
+      join,
+      Eq((==)),
+      Monad(return, (>>=)),
+      Functor(fmap),
+      Semigroup((<>)),
+      Bool,
+      Char,
+      Maybe(..),
+      Either(..),
+      ByteString,
+      Text,
+      or,
+      (<$>),
+      (.),
+      show,
+      toS,
+      toSL,
+      MonadIO,
+      MonadReader(ask) )
 import           Control.Arrow                  ( (***) )
 import           Control.Exception              ( throw )
 import           Control.Monad.Catch            ( MonadThrow )

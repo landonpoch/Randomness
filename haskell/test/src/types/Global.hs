@@ -16,7 +16,18 @@ module Types.Global
   )
 where
 
-import           Protolude
+import Protolude
+    ( Eq,
+      Monad,
+      Functor,
+      Ord,
+      Show,
+      Applicative,
+      IO,
+      Text,
+      MonadIO,
+      MonadReader,
+      ReaderT(ReaderT) )
 -- TODO: See if we can get rid of this reference by changing Response ByteString somehow
 import qualified Data.ByteString.Lazy.Char8    as L8
                                                 ( ByteString )
@@ -26,14 +37,7 @@ import           Network.HTTP.Simple            ( Request
 import           Web.Authenticate.OAuth         ( Credential(..)
                                                 , OAuth(..)
                                                 )
-import           Control.Monad.Reader           ( ReaderT
-                                                , MonadReader
-                                                )
 import           Control.Monad.Catch            ( MonadThrow )
-import           Data.Functor                   ( Functor )
-import           Control.Applicative            ( Applicative )
-import           Control.Monad                  ( Monad )
-import           Control.Monad.IO.Class         ( MonadIO )
 
 -- TODO: Build up ENV instead of just using log level
 -- https://markkarpov.com/post/free-monad-considered-harmful.html

@@ -2,12 +2,23 @@
 
 module Main where
 
-import           Protolude
+import Protolude
+    ( ($),
+      Ord((>=)),
+      IO,
+      Either(Right, Left),
+      Text,
+      try,
+      when,
+      catch,
+      print,
+      toS,
+      putText,
+      readFile,
+      MonadIO(..),
+      SomeException,
+      ReaderT(runReaderT) )
 import           App.Bootstrapper               ( bootstrap )
-import           Control.Exception              ( SomeException
-                                                , catch
-                                                , try
-                                                )
 import qualified Types.Config                  as TC
 import           Types.Exceptions               ( CustomException(..) )
 import           Types.Global                   ( Config(..)
@@ -21,7 +32,6 @@ import           Types.Global                   ( Config(..)
                                                 , FileReader(..)
                                                 , Signer(..)
                                                 )
-import           Control.Monad.Reader           ( runReaderT )
 import           Network.HTTP.Simple            ( httpLBS )
 import           Web.Authenticate.OAuth         ( signOAuth )
 

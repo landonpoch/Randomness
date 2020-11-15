@@ -5,8 +5,18 @@ module App.Bootstrapper
   )
 where
 
-import           Protolude
-import           Data.Monoid                    ( (<>) )
+import Protolude
+    ( ($),
+      Monad(return),
+      Functor(fmap),
+      Semigroup((<>)),
+      Maybe(..),
+      Either(Right, Left),
+      Text,
+      (.),
+      show,
+      toS,
+      MonadReader(ask) )
 import           Control.Exception              ( throw )
 import           Data.Aeson                     ( eitherDecode )
 import qualified Data.HashMap.Strict           as HM
@@ -119,10 +129,10 @@ selectHostnames hostnamesByEnvironment env = do
   let maybeHostnames = HM.lookup env $ TH.environments hostnamesByEnvironment
   convertMaybe maybeHostnames "environment missing hostnames"
 
-getConfigHost :: TH.Hostnames -> Text
-getConfigHost selectedHostnames = do
-  let maybeConfigUrl = TH.appCastUrl selectedHostnames
-  convertMaybe maybeConfigUrl "config url is missing from hostnames"
+-- getConfigHost :: TH.Hostnames -> Text
+-- getConfigHost selectedHostnames = do
+--   let maybeConfigUrl = TH.appCastUrl selectedHostnames
+--   convertMaybe maybeConfigUrl "config url is missing from hostnames"
 
 convertMaybe :: Maybe a -> Text -> a
 convertMaybe val msg = case val of

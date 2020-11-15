@@ -8,8 +8,8 @@ module Types.Auth
   )
 where
 
-import           Protolude
-import           Data.Aeson
+import Protolude ( ($), Monad(return), Show )
+import Data.Aeson ( (.:), withObject, FromJSON(parseJSON) )
 import qualified Data.Text                     as T
 
 data AccessTokenResponse = AccessTokenResponse
